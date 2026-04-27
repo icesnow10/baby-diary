@@ -238,16 +238,16 @@ export default function HomePage() {
               <div className="entryCardTitle"><Milk size={24} /> <strong>Feeding</strong></div>
               <div className="pillRow"><span className="pill active">Left</span><span className="pill">Right</span><span className="pill">Bottle</span></div>
               <label>Type</label>
-              <div className="radioLine"><span className="dot active" /> Breast Milk <span className="dot" /> Formula</div>
+              <div className="optionRow"><span className="optionPill active"><span className="dot" /> Breast Milk</span><span className="optionPill"><span className="dot" /> Formula</span></div>
               <label>Amount</label>
-              <Input value="120 ml" readOnly />
+              <Input addonBefore="ml" value="120" readOnly />
               <Button className="entrySave" href="/feeding">Save</Button>
             </div>
             <div className="entryCard" style={metricStyles.diaper}>
               <div className="entryCardTitle"><Baby size={24} /> <strong>Diaper</strong></div>
               <div className="pillRow"><span className="pill active">Wet</span><span className="pill">Dirty</span><span className="pill">Mix</span><span className="pill">Dry</span></div>
               <label>Diaper Cream</label>
-              <div className="pillRow wrap"><span className="pill active">Assadura</span><span className="pill">Hipoglos</span><span className="pill">None</span></div>
+              <div className="optionRow wrap"><span className="optionPill active"><span className="dot" /> Assadura</span><span className="optionPill"><span className="dot" /> Hipoglos</span><span className="optionPill"><span className="dot" /> None</span></div>
               <Button className="entrySave" href="/diaper">Save</Button>
             </div>
             <div className="entryCard" style={metricStyles.pump}>

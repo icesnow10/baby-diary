@@ -401,14 +401,16 @@ body {
 }
 
 .easyEntries {
-  padding: 22px;
+  padding: 28px 26px 30px;
   border: 1px solid var(--line);
-  border-radius: 20px;
-  background: rgba(255, 246, 249, 0.78);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 249, 0.9), rgba(255, 250, 252, 0.78)),
+    var(--surface-strong);
 }
 
 .easyEntriesHeader {
-  margin-bottom: 16px;
+  margin-bottom: 22px;
 }
 
 .easyEntriesHeader .ant-typography {
@@ -416,64 +418,93 @@ body {
   color: #823148;
 }
 
+.easyEntriesHeader h2.ant-typography {
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.easyEntriesHeader span.ant-typography {
+  display: block;
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .entryCardGrid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(150px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(6, minmax(170px, 1fr));
+  gap: 26px;
 }
 
 .entryCard {
-  min-height: 294px;
+  min-height: 322px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px;
-  border-radius: 12px;
+  gap: 12px;
+  padding: 22px 18px 18px;
+  border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.86);
-  box-shadow: 0 12px 28px rgba(114, 57, 76, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 30px rgba(114, 57, 76, 0.08);
 }
 
 .entryCardTitle {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
+  min-height: 30px;
+  margin-bottom: 10px;
   color: var(--metric-color);
 }
 
 .entryCardTitle strong {
   color: var(--text);
+  font-size: 17px;
 }
 
 .entryCard label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .entryCard .ant-input,
+.entryCard .ant-input-group-addon,
 .entryCard .ant-select-selector {
-  border-radius: 10px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
   border-color: var(--line) !important;
-  text-align: right;
+  background: rgba(255, 255, 255, 0.92) !important;
+  font-size: 16px;
 }
 
-.pillRow,
-.radioLine {
+.entryCard .ant-input {
+  text-align: right;
+  font-weight: 700;
+}
+
+.entryCard .ant-input-group-addon {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.pillRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--text);
-  font-size: 12px;
+  font-size: 13px;
 }
 
-.pillRow.wrap {
+.pillRow.wrap,
+.optionRow.wrap {
   flex-wrap: wrap;
 }
 
 .pill {
-  min-width: 44px;
-  padding: 8px 10px;
+  min-width: 54px;
+  padding: 12px 13px;
   text-align: center;
   border-radius: 999px;
   border: 1px solid var(--line);
@@ -485,26 +516,54 @@ body {
   border-color: var(--metric-line);
 }
 
+.optionRow {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.optionPill {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.optionPill.active {
+  border-color: var(--metric-line);
+  background: var(--metric-bg);
+}
+
 .dot {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   display: inline-block;
   border-radius: 999px;
   border: 1px solid var(--line);
 }
 
-.dot.active {
+.optionPill.active .dot {
   border: 4px solid var(--pink);
 }
 
 .entrySave {
   width: 100%;
-  height: 44px;
+  height: 52px;
   margin-top: auto;
   color: #ffffff !important;
+  font-size: 16px;
   font-weight: 800;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #ff78ad, #ef5d99);
   box-shadow: 0 10px 18px rgba(239, 79, 137, 0.2);
 }
