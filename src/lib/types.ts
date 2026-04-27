@@ -8,15 +8,16 @@ export type MedicineUnit = "ml" | "drops" | "tsp";
 export interface SleepEntry {
   id: string;
   start: string; // ISO
-  end: string;   // ISO
+  end?: string;   // ISO
   notes?: string;
 }
 
 export interface FeedingEntry {
   id: string;
-  time: string; // ISO
+  time: string; // ISO — for nursing this is the start
   kind: FeedingKind;
   side?: Side;            // when nursing
+  end?: string;           // when nursing — ISO end time
   durationMin?: number;   // when nursing
   source?: BottleSource;  // when bottle
   volumeMl?: number;      // when bottle
@@ -66,7 +67,29 @@ export interface MedicineEntry {
   notes?: string;
 }
 
+export interface BathEntry {
+  id: string;
+  time: string; // ISO
+  notes?: string;
+}
+
+export interface OutingEntry {
+  id: string;
+  time?: string; // legacy ISO
+  start?: string; // ISO
+  end?: string; // ISO
+  place?: string;
+  notes?: string;
+}
+
+export interface BabyProfile {
+  name: string;
+  birthDate?: string; // YYYY-MM-DD
+  avatarUrl?: string;
+}
+
 export interface BabyData {
+  profile: BabyProfile;
   sleep: SleepEntry[];
   feeding: FeedingEntry[];
   diaper: DiaperEntry[];
@@ -74,9 +97,12 @@ export interface BabyData {
   pump: PumpEntry[];
   growth: GrowthEntry[];
   medicine: MedicineEntry[];
+  bath: BathEntry[];
+  outing: OutingEntry[];
 }
 
 export const EMPTY_DATA: BabyData = {
+  profile: { name: "Bebê" },
   sleep: [],
   feeding: [],
   diaper: [],
@@ -91,6 +117,8 @@ export const EMPTY_DATA: BabyData = {
   pump: [],
   growth: [],
   medicine: [],
+  bath: [],
+  outing: [],
 };
 
 export type DataKey =
@@ -100,4 +128,6 @@ export type DataKey =
   | "diaperInventory"
   | "pump"
   | "growth"
-  | "medicine";
+  | "medicine"
+  | "bath"
+  | "outing";

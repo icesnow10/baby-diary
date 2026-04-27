@@ -15,7 +15,7 @@ export default function FeedingPage() {
   const columns: ColumnsType<FeedingEntry> = [
     { title: "Time", dataIndex: "time", render: formatDateTime },
     { title: "Kind", dataIndex: "kind" },
-    { title: "Details", render: (_, entry) => (entry.kind === "nursing" ? `${entry.side} breast, ${entry.durationMin ?? 0} min` : `${entry.source}, ${entry.volumeMl ?? 0} ml`) },
+    { title: "Details", render: (_, entry) => (entry.kind === "nursing" ? `Breast, ${entry.durationMin ?? 0} min` : `${entry.source}, ${entry.volumeMl ?? 0} ml`) },
     { title: "Notes", dataIndex: "notes" },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("feeding", entry.id)} /> },
   ];
@@ -27,13 +27,12 @@ export default function FeedingPage() {
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ kind: "nursing", side: "left", source: "breastmilk" }}
+          initialValues={{ kind: "nursing", source: "breastmilk" }}
           onFinish={async (values) => {
             await add("feeding", {
               id: newId(),
               time: values.time.toISOString(),
               kind: values.kind,
-              side: values.kind === "nursing" ? values.side : undefined,
               durationMin: values.kind === "nursing" ? values.durationMin : undefined,
               source: values.kind === "bottle" ? values.source : undefined,
               volumeMl: values.kind === "bottle" ? values.volumeMl : undefined,
@@ -51,9 +50,6 @@ export default function FeedingPage() {
             </Form.Item>
             {kind === "nursing" ? (
               <>
-                <Form.Item name="side" label="Breast" rules={[{ required: true }]}>
-                  <Select options={[{ value: "left", label: "Left" }, { value: "right", label: "Right" }]} />
-                </Form.Item>
                 <Form.Item name="durationMin" label="Duration (min)" rules={[{ required: true }]}>
                   <InputNumber min={1} style={{ width: "100%" }} />
                 </Form.Item>

@@ -8,9 +8,9 @@ import {
   BarChart3,
   Bell,
   BriefcaseMedical,
-  ClipboardList,
   Heart,
   Home,
+  Lightbulb,
   Milk,
   Moon,
   MoreHorizontal,
@@ -26,7 +26,7 @@ const { Header, Sider, Content } = Layout;
 
 const navItems = [
   { key: "/", label: "Home", icon: <BarChart3 size={18} /> },
-  { key: "/history", label: "History", icon: <ClipboardList size={18} /> },
+  { key: "/insights", label: "Insights", icon: <Lightbulb size={18} /> },
   { key: "/sleep", label: "Sleep", icon: <Moon size={18} /> },
   { key: "/feeding", label: "Feeding", icon: <Milk size={18} /> },
   { key: "/diaper", label: "Diapers", icon: <Baby size={18} /> },
@@ -39,13 +39,25 @@ const navItems = [
 const quickItems = navItems.filter((item) => ["/sleep", "/feeding", "/diaper", "/pump", "/medicine", "/growth"].includes(item.key));
 const moreItems = navItems.filter((item) => ["/sleep", "/feeding", "/diaper", "/pump", "/medicine", "/inventory"].includes(item.key));
 
+function BabyPortrait({ className = "" }: { className?: string }) {
+  return (
+    <div className={className} aria-hidden="true">
+      <span className="portraitFace" />
+      <span className="portraitCap" />
+      <span className="portraitWrap" />
+    </div>
+  );
+}
+
 export default function AppShell({
   title,
   subtitle,
+  onAddClick,
   children,
 }: {
   title: string;
   subtitle?: string;
+  onAddClick?: () => void;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -70,9 +82,7 @@ export default function AppShell({
         </div>
       </div>
       <div className="babyProfile">
-        <div className="babyAvatar">
-          <Baby size={36} />
-        </div>
+        <BabyPortrait className="babyAvatar" />
         <div>
           <strong>Emma</strong>
           <span>3 months, 12 days</span>
@@ -111,17 +121,22 @@ export default function AppShell({
       {sider}
       <Layout>
         <Header className="topbar">
-          <Space size={12}>
-            <div className="mobileHeaderAvatar">
-              <Baby size={28} />
+          <div className="mobileBabyHeader">
+            <BabyPortrait className="mobileHeaderAvatar" />
+            <div className="mobileHeaderText">
+              <div className="mobileHeaderName">
+                <strong>Emma</strong>
+                <Heart size={16} fill="currentColor" stroke="none" />
+              </div>
+              <span>3 months, 12 days</span>
             </div>
-            <div>
-              <Typography.Title level={3} className="pageTitle">
-                {title}
-              </Typography.Title>
-              {subtitle ? <Typography.Text type="secondary">{subtitle}</Typography.Text> : null}
-            </div>
-          </Space>
+          </div>
+          <div className="desktopHeaderText">
+            <Typography.Title level={3} className="pageTitle">
+              {title}
+            </Typography.Title>
+            {subtitle ? <Typography.Text type="secondary">{subtitle}</Typography.Text> : null}
+          </div>
           <Space>
             <Button className="topIconButton" icon={<Bell size={18} />} />
             <Button className="topIconButton themeButton" icon={mode === "dark" ? <Sun size={18} /> : <Moon size={18} />} onClick={toggle} />
@@ -133,13 +148,19 @@ export default function AppShell({
             <Home size={22} />
             <span>Home</span>
           </Link>
-          <Link href="/history" className={selectedPath === "/history" ? "bottomNavItem active" : "bottomNavItem"} aria-label="History">
-            <ClipboardList size={21} />
-            <span>History</span>
+          <Link href="/insights" className={selectedPath === "/insights" ? "bottomNavItem active" : "bottomNavItem"} aria-label="Insights">
+            <Lightbulb size={21} />
+            <span>Insights</span>
           </Link>
+          {onAddClick ? (
+            <button className="bottomAddButton" aria-label="Add entry" type="button" onClick={onAddClick}>
+              <Plus size={34} />
+            </button>
+          ) : (
           <Link href="/feeding" className="bottomAddButton" aria-label="Add entry">
             <Plus size={34} />
           </Link>
+          )}
           <Link href="/growth" className={selectedPath === "/growth" ? "bottomNavItem active" : "bottomNavItem"} aria-label="Growth">
             <Ruler size={22} />
             <span>Growth</span>

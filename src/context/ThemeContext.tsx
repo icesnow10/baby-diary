@@ -14,20 +14,12 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 const STORAGE_KEY = "baby-diary-theme-mode";
 
-function modeFromTime(): ThemeMode {
-  if (typeof window === "undefined") return "light";
-  const hour = new Date().getHours();
-  return hour >= 19 || hour < 7 ? "dark" : "light";
-}
-
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>(modeFromTime);
+  const [mode, setMode] = useState<ThemeMode>("light");
 
   useEffect(() => {
-    const stored = typeof window !== "undefined"
-      ? (localStorage.getItem(STORAGE_KEY) as ThemeMode | null)
-      : null;
-    const nextMode = stored === "light" || stored === "dark" ? stored : modeFromTime();
+    const stored = (localStorage.getItem(STORAGE_KEY) as ThemeMode | null);
+    const nextMode = stored === "light" || stored === "dark" ? stored : "light";
     setMode(nextMode);
   }, []);
 

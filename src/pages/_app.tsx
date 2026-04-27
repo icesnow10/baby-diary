@@ -13,8 +13,9 @@ function AppProviders({ Component, pageProps }: AppProps) {
       theme={{
         algorithm: mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#4f8a8b",
-          borderRadius: 8,
+          colorPrimary: "#ff6fa3",
+          colorLink: "#d778c5",
+          borderRadius: 12,
           fontFamily:
             "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
         },

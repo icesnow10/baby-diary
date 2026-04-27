@@ -18,6 +18,7 @@ export async function readData(): Promise<BabyData> {
   const raw = await fs.readFile(DATA_FILE, "utf-8");
   const parsed = JSON.parse(raw) as Partial<BabyData>;
   return {
+    profile: parsed.profile ?? EMPTY_DATA.profile,
     sleep: parsed.sleep ?? [],
     feeding: parsed.feeding ?? [],
     diaper: parsed.diaper ?? [],
@@ -25,6 +26,8 @@ export async function readData(): Promise<BabyData> {
     pump: parsed.pump ?? [],
     growth: parsed.growth ?? [],
     medicine: parsed.medicine ?? [],
+    bath: parsed.bath ?? [],
+    outing: parsed.outing ?? [],
   };
 }
 
