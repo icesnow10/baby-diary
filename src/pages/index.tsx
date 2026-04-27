@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type React from "react";
 import Link from "next/link";
-import { Button, Col, Row, Space, Typography } from "antd";
+import { Button, Col, Input, Row, Select, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Baby, BriefcaseMedical, CalendarDays, ChevronRight, Milk, Moon, Pill, Ruler } from "lucide-react";
@@ -219,6 +219,65 @@ export default function HomePage() {
             </section>
           </Col>
         </Row>
+
+        <section className="easyEntries">
+          <div className="easyEntriesHeader">
+            <Typography.Title level={2}>Easy to Add Entries</Typography.Title>
+            <Typography.Text>More buttons, less typing!</Typography.Text>
+          </div>
+          <div className="entryCardGrid">
+            <div className="entryCard" style={metricStyles.sleep}>
+              <div className="entryCardTitle"><Moon size={24} /> <strong>Sleep</strong></div>
+              <label>Start</label>
+              <Input value="07:30 PM" readOnly />
+              <label>End</label>
+              <Input value="06:30 AM" readOnly />
+              <Button className="entrySave" href="/sleep">Save</Button>
+            </div>
+            <div className="entryCard" style={metricStyles.feed}>
+              <div className="entryCardTitle"><Milk size={24} /> <strong>Feeding</strong></div>
+              <div className="pillRow"><span className="pill active">Left</span><span className="pill">Right</span><span className="pill">Bottle</span></div>
+              <label>Type</label>
+              <div className="radioLine"><span className="dot active" /> Breast Milk <span className="dot" /> Formula</div>
+              <label>Amount</label>
+              <Input value="120 ml" readOnly />
+              <Button className="entrySave" href="/feeding">Save</Button>
+            </div>
+            <div className="entryCard" style={metricStyles.diaper}>
+              <div className="entryCardTitle"><Baby size={24} /> <strong>Diaper</strong></div>
+              <div className="pillRow"><span className="pill active">Wet</span><span className="pill">Dirty</span><span className="pill">Mix</span><span className="pill">Dry</span></div>
+              <label>Diaper Cream</label>
+              <div className="pillRow wrap"><span className="pill active">Assadura</span><span className="pill">Hipoglos</span><span className="pill">None</span></div>
+              <Button className="entrySave" href="/diaper">Save</Button>
+            </div>
+            <div className="entryCard" style={metricStyles.pump}>
+              <div className="entryCardTitle"><BriefcaseMedical size={24} /> <strong>Pumping</strong></div>
+              <label>Left</label>
+              <Input value="15 min" readOnly />
+              <label>Right</label>
+              <Input value="15 min" readOnly />
+              <Button className="entrySave" href="/pump">Save</Button>
+            </div>
+            <div className="entryCard" style={metricStyles.med}>
+              <div className="entryCardTitle"><Pill size={24} /> <strong>Medicine</strong></div>
+              <label>Medication</label>
+              <Select value="Paracetamol" options={[{ value: "Paracetamol", label: "Paracetamol" }]} />
+              <label>Amount</label>
+              <Input value="2.5 ml" readOnly />
+              <Button className="entrySave" href="/medicine">Save</Button>
+            </div>
+            <div className="entryCard" style={metricStyles.sleep}>
+              <div className="entryCardTitle"><Ruler size={24} /> <strong>Growth</strong></div>
+              <label>Weight</label>
+              <Input value="5.8 kg" readOnly />
+              <label>Height</label>
+              <Input value="60.5 cm" readOnly />
+              <label>Head</label>
+              <Input value="38.5 cm" readOnly />
+              <Button className="entrySave" href="/growth">Save</Button>
+            </div>
+          </div>
+        </section>
       </Space>
     </AppShell>
   );

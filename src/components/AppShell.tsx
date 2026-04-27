@@ -8,12 +8,15 @@ import {
   BarChart3,
   Bell,
   BriefcaseMedical,
+  ClipboardList,
   Heart,
+  Home,
   Milk,
   Moon,
   MoreHorizontal,
   Package,
   Pill,
+  Plus,
   Ruler,
   Sun,
 } from "lucide-react";
@@ -23,6 +26,7 @@ const { Header, Sider, Content } = Layout;
 
 const navItems = [
   { key: "/", label: "Home", icon: <BarChart3 size={18} /> },
+  { key: "/history", label: "History", icon: <ClipboardList size={18} /> },
   { key: "/sleep", label: "Sleep", icon: <Moon size={18} /> },
   { key: "/feeding", label: "Feeding", icon: <Milk size={18} /> },
   { key: "/diaper", label: "Diapers", icon: <Baby size={18} /> },
@@ -32,8 +36,8 @@ const navItems = [
   { key: "/inventory", label: "Inventory", icon: <Package size={18} /> },
 ];
 
-const bottomItems = navItems.slice(0, 5);
-const moreItems = navItems.slice(5);
+const quickItems = navItems.filter((item) => ["/sleep", "/feeding", "/diaper", "/pump", "/medicine", "/growth"].includes(item.key));
+const moreItems = navItems.filter((item) => ["/sleep", "/feeding", "/diaper", "/pump", "/medicine", "/inventory"].includes(item.key));
 
 export default function AppShell({
   title,
@@ -85,13 +89,13 @@ export default function AppShell({
         <strong>Quick Add</strong>
         <span>Add an entry with one tap</span>
         <div className="sideQuickGrid">
-          {bottomItems.slice(1).map((item) => (
+          {quickItems.slice(0, 4).map((item) => (
             <Link key={item.key} href={item.key} className="quickTile">
               {item.icon}
               <span>{item.label}</span>
             </Link>
           ))}
-          {moreItems.slice(0, 2).map((item) => (
+          {quickItems.slice(4, 6).map((item) => (
             <Link key={item.key} href={item.key} className="quickTile">
               {item.icon}
               <span>{item.label}</span>
@@ -125,12 +129,21 @@ export default function AppShell({
         </Header>
         <Content className="pageContent">{children}</Content>
         <nav className="bottomNav" aria-label="Mobile navigation">
-          {bottomItems.map((item) => (
-            <Link key={item.key} href={item.key} className={selectedPath === item.key ? "bottomNavItem active" : "bottomNavItem"} aria-label={item.label}>
-              {item.icon}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          <Link href="/" className={selectedPath === "/" ? "bottomNavItem active" : "bottomNavItem"} aria-label="Home">
+            <Home size={22} />
+            <span>Home</span>
+          </Link>
+          <Link href="/history" className={selectedPath === "/history" ? "bottomNavItem active" : "bottomNavItem"} aria-label="History">
+            <ClipboardList size={21} />
+            <span>History</span>
+          </Link>
+          <Link href="/feeding" className="bottomAddButton" aria-label="Add entry">
+            <Plus size={34} />
+          </Link>
+          <Link href="/growth" className={selectedPath === "/growth" ? "bottomNavItem active" : "bottomNavItem"} aria-label="Growth">
+            <Ruler size={22} />
+            <span>Growth</span>
+          </Link>
           <div className={moreItems.some((item) => item.key === selectedPath) ? "bottomMore active" : "bottomMore"}>
             <button className="bottomNavItem bottomMoreButton" type="button" aria-label="More sections">
               <MoreHorizontal size={18} />

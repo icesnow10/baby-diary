@@ -400,6 +400,115 @@ body {
   font-size: 12px;
 }
 
+.easyEntries {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 246, 249, 0.78);
+}
+
+.easyEntriesHeader {
+  margin-bottom: 16px;
+}
+
+.easyEntriesHeader .ant-typography {
+  margin: 0;
+  color: #823148;
+}
+
+.entryCardGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  gap: 18px;
+}
+
+.entryCard {
+  min-height: 294px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 28px rgba(114, 57, 76, 0.08);
+}
+
+.entryCardTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--metric-color);
+}
+
+.entryCardTitle strong {
+  color: var(--text);
+}
+
+.entryCard label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.entryCard .ant-input,
+.entryCard .ant-select-selector {
+  border-radius: 10px !important;
+  border-color: var(--line) !important;
+  text-align: right;
+}
+
+.pillRow,
+.radioLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.pillRow.wrap {
+  flex-wrap: wrap;
+}
+
+.pill {
+  min-width: 44px;
+  padding: 8px 10px;
+  text-align: center;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.pill.active {
+  background: var(--metric-bg);
+  border-color: var(--metric-line);
+}
+
+.dot {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+
+.dot.active {
+  border: 4px solid var(--pink);
+}
+
+.entrySave {
+  width: 100%;
+  height: 44px;
+  margin-top: auto;
+  color: #ffffff !important;
+  font-weight: 800;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff78ad, #ef5d99);
+  box-shadow: 0 10px 18px rgba(239, 79, 137, 0.2);
+}
+
 @media (max-width: 768px) {
   .appSider {
     display: none;
@@ -545,6 +654,10 @@ body {
     display: none;
   }
 
+  .easyEntries {
+    display: none;
+  }
+
   .recentPanel {
     border-radius: 16px;
   }
@@ -619,9 +732,10 @@ body {
     bottom: 0;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 2px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
+    gap: 0;
+    padding: 7px 12px calc(7px + env(safe-area-inset-bottom));
     background: rgba(255, 255, 255, 0.96);
     border-top: 1px solid var(--line);
     box-shadow: 0 -12px 28px rgba(114, 57, 76, 0.14);
@@ -636,18 +750,19 @@ body {
   .bottomMoreButton {
     width: 100%;
     min-width: 0;
-    height: 56px;
+    height: 52px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 4px;
     border: 0;
-    border-radius: 16px;
+    border-radius: 14px;
     color: var(--muted);
     background: transparent;
     text-decoration: none;
-    font-size: 10px;
+    font-size: 11px;
+    font-weight: 600;
     line-height: 1.1;
     overflow: hidden;
   }
@@ -670,7 +785,22 @@ body {
   .bottomNavItem.active,
   .bottomMore.active .bottomMoreButton {
     color: var(--pink-strong);
-    background: #ffe6ef;
+    background: transparent;
+  }
+
+  .bottomAddButton {
+    width: 68px;
+    height: 68px;
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    margin-top: -24px;
+    margin-bottom: 4px;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #ff7bad, #ee5d99);
+    box-shadow: 0 12px 24px rgba(239, 79, 137, 0.34);
   }
 
   .bottomMore {
