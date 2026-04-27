@@ -108,6 +108,9 @@ export default function AppShell({
       <Layout>
         <Header className="topbar">
           <Space size={12}>
+            <div className="mobileHeaderAvatar">
+              <Baby size={28} />
+            </div>
             <div>
               <Typography.Title level={3} className="pageTitle">
                 {title}
@@ -117,7 +120,7 @@ export default function AppShell({
           </Space>
           <Space>
             <Button className="topIconButton" icon={<Bell size={18} />} />
-            <Button className="topIconButton" icon={mode === "dark" ? <Sun size={18} /> : <Moon size={18} />} onClick={toggle} />
+            <Button className="topIconButton themeButton" icon={mode === "dark" ? <Sun size={18} /> : <Moon size={18} />} onClick={toggle} />
           </Space>
         </Header>
         <Content className="pageContent">{children}</Content>

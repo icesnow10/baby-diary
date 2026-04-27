@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import type React from "react";
+import Link from "next/link";
 import { Button, Col, Row, Space, Typography } from "antd";
 import dayjs from "dayjs";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Baby, BriefcaseMedical, CalendarDays, Milk, Moon, Pill, Ruler } from "lucide-react";
+import { Baby, BriefcaseMedical, CalendarDays, ChevronRight, Milk, Moon, Pill, Ruler } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { useData } from "@/context/DataContext";
 import { durationMinutes, formatDuration, todayRange } from "@/lib/format";
@@ -96,8 +97,17 @@ export default function HomePage() {
     [data.growth],
   );
 
+  const quickAdd = [
+    { href: "/sleep", label: "Sleep", icon: <Moon size={25} />, tone: "sleep" },
+    { href: "/feeding", label: "Feeding", icon: <Milk size={25} />, tone: "feed" },
+    { href: "/diaper", label: "Diaper", icon: <Baby size={25} />, tone: "diaper" },
+    { href: "/pump", label: "Pumping", icon: <BriefcaseMedical size={25} />, tone: "pump" },
+    { href: "/medicine", label: "Medicine", icon: <Pill size={25} />, tone: "med" },
+    { href: "/growth", label: "Growth", icon: <Ruler size={25} />, tone: "sleep" },
+  ];
+
   return (
-    <AppShell title="Good morning, Mom!" subtitle="Here is Emma's summary for today.">
+    <AppShell title="Emma" subtitle="3 months, 12 days">
       <Space direction="vertical" size={18} style={{ width: "100%" }}>
         <section className="dashboardHero">
           <div>
@@ -111,7 +121,8 @@ export default function HomePage() {
           </Button>
         </section>
 
-        <section className="panel">
+        <section className="panel summaryPanel">
+          <Typography.Title className="mobileSectionTitle" level={5}>Today's Summary</Typography.Title>
           <div className="summaryGrid">
             <div className="babyMetric" style={metricStyles.sleep}>
               <div className="babyMetricIcon"><Moon size={24} /></div>
@@ -141,11 +152,24 @@ export default function HomePage() {
           </div>
         </section>
 
+        <section className="panel mobileQuickPanel">
+          <Typography.Title level={5} style={{ margin: 0 }}>Quick Add</Typography.Title>
+          <Typography.Text type="secondary">Tap to add</Typography.Text>
+          <div className="quickAddGrid">
+            {quickAdd.map((item) => (
+              <Link className="quickAddTile" href={item.href} key={item.href} style={metricStyles[item.tone]}>
+                <span className="quickAddIcon">{item.icon}</span>
+                <strong>{item.label}</strong>
+              </Link>
+            ))}
+          </div>
+        </section>
+
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={14}>
-            <section className="panel">
+            <section className="panel recentPanel">
               <Row justify="space-between" align="middle" style={{ marginBottom: 10 }}>
-                <Typography.Title level={4} style={{ margin: 0 }}>Today's Timeline</Typography.Title>
+                <Typography.Title level={4} style={{ margin: 0 }}>Recent Entries</Typography.Title>
                 <Button type="link">See all</Button>
               </Row>
               <div className="timelineList">
@@ -157,13 +181,14 @@ export default function HomePage() {
                       <strong>{entry.title}</strong>
                       <span>{entry.detail}</span>
                     </div>
+                    <ChevronRight className="timelineChevron" size={15} />
                   </div>
                 ))}
               </div>
             </section>
           </Col>
           <Col xs={24} xl={10}>
-            <section className="panel">
+            <section className="panel desktopOnlyPanel">
               <Typography.Title level={4}>Growth</Typography.Title>
               <Row gutter={12} style={{ marginBottom: 16 }}>
                 <Col span={8}><strong>{summary.latestGrowth?.weightKg ?? 0} kg</strong><br /><Typography.Text type="secondary">Weight</Typography.Text></Col>
@@ -181,7 +206,7 @@ export default function HomePage() {
                 </ResponsiveContainer>
               </div>
             </section>
-            <section className="panel">
+            <section className="panel desktopOnlyPanel">
               <Typography.Title level={4}>Diaper Inventory</Typography.Title>
               <Space direction="vertical" style={{ width: "100%" }}>
                 {data.diaperInventory.map((item) => (
