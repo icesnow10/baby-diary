@@ -1,0 +1,36 @@
+import type { AppProps } from "next/app";
+import { ConfigProvider, theme } from "antd";
+import { DataProvider } from "@/context/DataContext";
+import { ThemeProvider, useThemeMode } from "@/context/ThemeContext";
+import "@/styles/globals.css";
+import "antd/dist/reset.css";
+
+function AppProviders({ Component, pageProps }: AppProps) {
+  const { mode } = useThemeMode();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm: mode === "dark" ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: "#4f8a8b",
+          borderRadius: 8,
+          fontFamily:
+            "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+        },
+      }}
+    >
+      <DataProvider>
+        <Component {...pageProps} />
+      </DataProvider>
+    </ConfigProvider>
+  );
+}
+
+export default function App(props: AppProps) {
+  return (
+    <ThemeProvider>
+      <AppProviders {...props} />
+    </ThemeProvider>
+  );
+}
