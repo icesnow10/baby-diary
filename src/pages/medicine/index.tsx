@@ -13,8 +13,13 @@ export default function MedicinePage() {
   const [form] = Form.useForm();
   const columns: ColumnsType<MedicineEntry> = [
     { title: "Time", dataIndex: "time", render: formatDateTime },
-    { title: "Medication", render: (_, entry) => entry.doses.map((dose) => `${dose.name} ${dose.amount} ${dose.unit}`).join(", ") },
-    { title: "Notes", dataIndex: "notes" },
+    {
+      title: "Medication",
+      render: (_, entry) =>
+        entry.doses
+          .map((dose) => `${dose.name}${dose.amount ? ` ${dose.amount} ${dose.unit ?? ""}` : ""}`)
+          .join(", "),
+    },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("medicine", entry.id)} /> },
   ];
 
@@ -27,7 +32,7 @@ export default function MedicinePage() {
           layout="vertical"
           initialValues={{ doses: [{ unit: "ml" }] }}
           onFinish={async (values) => {
-            await add("medicine", { id: newId(), time: values.time.toISOString(), doses: values.doses, notes: values.notes });
+            await add("medicine", { id: newId(), time: values.time.toISOString(), doses: values.doses });
             form.resetFields();
           }}
         >
@@ -59,9 +64,6 @@ export default function MedicinePage() {
               </Space>
             )}
           </Form.List>
-          <Form.Item name="notes" label="Notes" style={{ marginTop: 16 }}>
-            <Input />
-          </Form.Item>
           <Button type="primary" htmlType="submit">
             Save medicine
           </Button>

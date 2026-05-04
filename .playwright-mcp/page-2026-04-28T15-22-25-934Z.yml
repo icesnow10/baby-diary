@@ -1,0 +1,273 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - generic:
+      - img
+    - generic [ref=e5]:
+      - banner [ref=e6]:
+        - generic [ref=e7]:
+          - button "Edit baby profile" [ref=e8] [cursor=pointer]
+          - generic [ref=e9]:
+            - generic [ref=e10]:
+              - strong [ref=e11]: Sophie
+              - img [ref=e12]
+            - generic [ref=e196]: 1 months, 21 days
+        - button [ref=e16] [cursor=pointer]:
+          - img [ref=e18]
+      - main [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e24]:
+            - generic [ref=e25]:
+              - heading "Today's Summary" [level=5] [ref=e26]
+              - generic [ref=e27]: April 28, 2026
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - generic [ref=e30]:
+                  - img [ref=e32]
+                  - strong [ref=e34]: 6h 24min
+                  - generic [ref=e35]: Sleep
+                - generic [ref=e36]:
+                  - img [ref=e38]
+                  - strong [ref=e47]: "5"
+                  - generic [ref=e48]: Feedings
+                - generic [ref=e49]:
+                  - img [ref=e51]
+                  - strong [ref=e54]: "4"
+                  - generic [ref=e55]: Diapers
+                - generic [ref=e56]:
+                  - img [ref=e58]
+                  - strong [ref=e61]: "0"
+                  - generic [ref=e62]: Pumping
+                - generic [ref=e63]:
+                  - img [ref=e65]
+                  - strong [ref=e68]: "1"
+                  - generic [ref=e69]: Bath
+                - generic [ref=e70]:
+                  - img [ref=e72]
+                  - strong [ref=e75]: "0"
+                  - generic [ref=e76]: Medicine
+                - generic [ref=e77]:
+                  - img [ref=e79]
+                  - strong [ref=e81]: "0"
+                  - generic [ref=e82]: Playtime
+                - generic [ref=e83]:
+                  - img [ref=e85]
+                  - strong [ref=e88]: "0"
+                  - generic [ref=e89]: Outing
+              - generic: ›
+          - generic [ref=e91]:
+            - heading "Quick Add" [level=5] [ref=e92]
+            - generic [ref=e93]: Tap to add
+            - generic [ref=e94]:
+              - button "Sleep" [ref=e95] [cursor=pointer]:
+                - img [ref=e97]
+                - strong [ref=e99]: Sleep
+              - button "Feeding" [ref=e100] [cursor=pointer]:
+                - img [ref=e102]
+                - strong [ref=e111]: Feeding
+              - button "Diaper" [ref=e112] [cursor=pointer]:
+                - img [ref=e114]
+                - strong [ref=e117]: Diaper
+              - button "Pumping" [ref=e118] [cursor=pointer]:
+                - img [ref=e120]
+                - strong [ref=e123]: Pumping
+              - button "Medicine" [ref=e124] [cursor=pointer]:
+                - img [ref=e126]
+                - strong [ref=e129]: Medicine
+              - button "Bath" [ref=e130] [cursor=pointer]:
+                - img [ref=e132]
+                - strong [ref=e135]: Bath
+              - button "Playtime" [ref=e136] [cursor=pointer]:
+                - img [ref=e138]
+                - strong [ref=e140]: Playtime
+              - button "Outing" [ref=e141] [cursor=pointer]:
+                - img [ref=e143]
+                - strong [ref=e146]: Outing
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "Today's Timeline" [level=5] [ref=e150]
+              - generic [ref=e151]: April 28, 2026
+            - group "Timeline order" [ref=e152]:
+              - button "Asc" [ref=e153] [cursor=pointer]
+              - button "Desc" [pressed] [ref=e154] [cursor=pointer]
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - button "Add entry between" [ref=e199] [cursor=pointer]:
+                  - img [ref=e201]
+                - button "11:10 Nursing Breast - 14min" [ref=e202] [cursor=pointer]:
+                  - generic [ref=e203]: 11:10
+                  - img [ref=e207]
+                  - generic [ref=e216]:
+                    - strong [ref=e217]: Nursing
+                    - generic [ref=e218]: Breast - 14min
+                  - img [ref=e219]
+              - generic [ref=e221]:
+                - button "Add entry between" [ref=e222] [cursor=pointer]:
+                  - img [ref=e224]
+                - button "11:00 Diaper + Bath mix / Bath time" [ref=e225] [cursor=pointer]:
+                  - generic [ref=e226]: 11:00
+                  - generic [ref=e229]:
+                    - img [ref=e231]
+                    - img [ref=e235]
+                  - generic [ref=e238]:
+                    - strong [ref=e239]: Diaper + Bath
+                    - generic [ref=e240]: mix / Bath time
+                  - img [ref=e241]
+              - generic [ref=e243]:
+                - button "Add entry between" [ref=e244] [cursor=pointer]:
+                  - img [ref=e246]
+                - button "10:27 Nursing Breast - 33min" [ref=e247] [cursor=pointer]:
+                  - generic [ref=e248]: 10:27
+                  - img [ref=e252]
+                  - generic [ref=e261]:
+                    - strong [ref=e262]: Nursing
+                    - generic [ref=e263]: Breast - 33min
+                  - img [ref=e264]
+              - generic [ref=e266]:
+                - button "Add entry between" [ref=e267] [cursor=pointer]:
+                  - img [ref=e269]
+                - button "09:07 Sleep 09:07 - 10:27 (1h 20min)" [ref=e270] [cursor=pointer]:
+                  - generic [ref=e271]: 09:07
+                  - img [ref=e275]
+                  - generic [ref=e277]:
+                    - strong [ref=e278]: Sleep
+                    - generic [ref=e279]: 09:07 - 10:27 (1h 20min)
+                  - img [ref=e280]
+              - generic [ref=e282]:
+                - button "Add entry between" [ref=e283] [cursor=pointer]:
+                  - img [ref=e285]
+                - button "08:10 Nursing Breast - 30min" [ref=e286] [cursor=pointer]:
+                  - generic [ref=e287]: 08:10
+                  - img [ref=e291]
+                  - generic [ref=e300]:
+                    - strong [ref=e301]: Nursing
+                    - generic [ref=e302]: Breast - 30min
+                  - img [ref=e303]
+              - generic [ref=e305]:
+                - button "Add entry between" [ref=e306] [cursor=pointer]:
+                  - img [ref=e308]
+                - button "08:09 Diaper mix - Diaper cream (assadura)" [ref=e309] [cursor=pointer]:
+                  - generic [ref=e310]: 08:09
+                  - img [ref=e314]
+                  - generic [ref=e317]:
+                    - strong [ref=e318]: Diaper
+                    - generic [ref=e319]: mix - Diaper cream (assadura)
+                  - img [ref=e320]
+              - generic [ref=e322]:
+                - button "Add entry between" [ref=e323] [cursor=pointer]:
+                  - img [ref=e325]
+                - button "07:04 Sleep 07:04 - 08:09 (1h 5min)" [ref=e326] [cursor=pointer]:
+                  - generic [ref=e327]: 07:04
+                  - img [ref=e331]
+                  - generic [ref=e333]:
+                    - strong [ref=e334]: Sleep
+                    - generic [ref=e335]: 07:04 - 08:09 (1h 5min)
+                  - img [ref=e336]
+              - generic [ref=e338]:
+                - button "Add entry between" [ref=e339] [cursor=pointer]:
+                  - img [ref=e341]
+                - button "06:30 Diaper mix" [ref=e342] [cursor=pointer]:
+                  - generic [ref=e343]: 06:30
+                  - img [ref=e347]
+                  - generic [ref=e350]:
+                    - strong [ref=e351]: Diaper
+                    - generic [ref=e352]: mix
+                  - img [ref=e353]
+              - generic [ref=e355]:
+                - button "Add entry between" [ref=e356] [cursor=pointer]:
+                  - img [ref=e358]
+                - button "06:16 Nursing Breast - 19min" [ref=e359] [cursor=pointer]:
+                  - generic [ref=e360]: 06:16
+                  - img [ref=e364]
+                  - generic [ref=e373]:
+                    - strong [ref=e374]: Nursing
+                    - generic [ref=e375]: Breast - 19min
+                  - img [ref=e376]
+              - generic [ref=e378]:
+                - button "Add entry between" [ref=e379] [cursor=pointer]:
+                  - img [ref=e381]
+                - button "05:10 Sleep 05:10 - 06:16 (1h 6min)" [ref=e382] [cursor=pointer]:
+                  - generic [ref=e383]: 05:10
+                  - img [ref=e387]
+                  - generic [ref=e389]:
+                    - strong [ref=e390]: Sleep
+                    - generic [ref=e391]: 05:10 - 06:16 (1h 6min)
+                  - img [ref=e392]
+              - generic [ref=e394]:
+                - button "Add entry between" [ref=e395] [cursor=pointer]:
+                  - img [ref=e397]
+                - button "03:57 Diaper wet" [ref=e398] [cursor=pointer]:
+                  - generic [ref=e399]: 03:57
+                  - img [ref=e403]
+                  - generic [ref=e406]:
+                    - strong [ref=e407]: Diaper
+                    - generic [ref=e408]: wet
+                  - img [ref=e409]
+              - generic [ref=e411]:
+                - button "Add entry between" [ref=e412] [cursor=pointer]:
+                  - img [ref=e414]
+                - button "03:12 Feeding (Bottle) breastmilk - 100 ml" [ref=e415] [cursor=pointer]:
+                  - generic [ref=e416]: 03:12
+                  - img [ref=e420]
+                  - generic [ref=e429]:
+                    - strong [ref=e430]: Feeding (Bottle)
+                    - generic [ref=e431]: breastmilk - 100 ml
+                  - img [ref=e432]
+              - generic [ref=e434]:
+                - button "Add entry between" [ref=e435] [cursor=pointer]:
+                  - img [ref=e437]
+                - button "00:07 Sleep 00:07 - 03:00 (2h 53min)" [ref=e438] [cursor=pointer]:
+                  - generic [ref=e439]: 00:07
+                  - img [ref=e443]
+                  - generic [ref=e445]:
+                    - strong [ref=e446]: Sleep
+                    - generic [ref=e447]: 00:07 - 03:00 (2h 53min)
+                  - img [ref=e448]
+              - button "Add entry after last" [ref=e450] [cursor=pointer]:
+                - img [ref=e452]
+      - navigation "Mobile navigation" [ref=e158]:
+        - link "Home" [ref=e159] [cursor=pointer]:
+          - /url: /
+          - img [ref=e160]
+          - generic [ref=e163]: Home
+        - link "History" [active] [ref=e164] [cursor=pointer]:
+          - /url: /history
+          - img [ref=e165]
+          - generic [ref=e168]: History
+        - button "Add entry" [ref=e169] [cursor=pointer]:
+          - img [ref=e170]
+        - link "Growth" [ref=e171] [cursor=pointer]:
+          - /url: /growth
+          - img [ref=e172]
+          - generic [ref=e178]: Growth
+        - generic [ref=e179]:
+          - button "More sections" [ref=e180]:
+            - img [ref=e181]
+            - generic [ref=e185]: More
+          - generic "More navigation":
+            - link "Sleep":
+              - /url: /sleep
+              - img
+              - generic: Sleep
+            - link "Feeding":
+              - /url: /feeding
+              - img
+              - generic: Feeding
+            - link "Diapers":
+              - /url: /diaper
+              - img
+              - generic: Diapers
+            - link "Pumping":
+              - /url: /pump
+              - img
+              - generic: Pumping
+            - link "Medicine":
+              - /url: /medicine
+              - img
+              - generic: Medicine
+            - link "Inventory":
+              - /url: /inventory
+              - img
+              - generic: Inventory
+  - button "Open Next.js Dev Tools" [ref=e191] [cursor=pointer]:
+    - img [ref=e192]
+  - alert [ref=e195]

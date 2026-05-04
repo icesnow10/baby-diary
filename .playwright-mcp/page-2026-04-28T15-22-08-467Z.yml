@@ -1,0 +1,136 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic:
+      - img
+    - generic [ref=e5]:
+      - banner [ref=e6]:
+        - generic [ref=e7]:
+          - button "Edit baby profile" [ref=e8] [cursor=pointer]
+          - generic [ref=e10]:
+            - strong [ref=e11]: Bebê
+            - img [ref=e12]
+        - button [ref=e16] [cursor=pointer]:
+          - img [ref=e18]
+      - main [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e24]:
+            - generic [ref=e25]:
+              - heading "Today's Summary" [level=5] [ref=e26]
+              - generic [ref=e27]: April 28, 2026
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - generic [ref=e30]:
+                  - img [ref=e32]
+                  - strong [ref=e34]: 0min
+                  - generic [ref=e35]: Sleep
+                - generic [ref=e36]:
+                  - img [ref=e38]
+                  - strong [ref=e47]: "0"
+                  - generic [ref=e48]: Feedings
+                - generic [ref=e49]:
+                  - img [ref=e51]
+                  - strong [ref=e54]: "0"
+                  - generic [ref=e55]: Diapers
+                - generic [ref=e56]:
+                  - img [ref=e58]
+                  - strong [ref=e61]: "0"
+                  - generic [ref=e62]: Pumping
+                - generic [ref=e63]:
+                  - img [ref=e65]
+                  - strong [ref=e68]: "0"
+                  - generic [ref=e69]: Bath
+                - generic [ref=e70]:
+                  - img [ref=e72]
+                  - strong [ref=e75]: "0"
+                  - generic [ref=e76]: Medicine
+                - generic [ref=e77]:
+                  - img [ref=e79]
+                  - strong [ref=e81]: "0"
+                  - generic [ref=e82]: Playtime
+                - generic [ref=e83]:
+                  - img [ref=e85]
+                  - strong [ref=e88]: "0"
+                  - generic [ref=e89]: Outing
+              - generic: ›
+          - generic [ref=e91]:
+            - heading "Quick Add" [level=5] [ref=e92]
+            - generic [ref=e93]: Tap to add
+            - generic [ref=e94]:
+              - button "Sleep" [ref=e95] [cursor=pointer]:
+                - img [ref=e97]
+                - strong [ref=e99]: Sleep
+              - button "Feeding" [ref=e100] [cursor=pointer]:
+                - img [ref=e102]
+                - strong [ref=e111]: Feeding
+              - button "Diaper" [ref=e112] [cursor=pointer]:
+                - img [ref=e114]
+                - strong [ref=e117]: Diaper
+              - button "Pumping" [ref=e118] [cursor=pointer]:
+                - img [ref=e120]
+                - strong [ref=e123]: Pumping
+              - button "Medicine" [ref=e124] [cursor=pointer]:
+                - img [ref=e126]
+                - strong [ref=e129]: Medicine
+              - button "Bath" [ref=e130] [cursor=pointer]:
+                - img [ref=e132]
+                - strong [ref=e135]: Bath
+              - button "Playtime" [ref=e136] [cursor=pointer]:
+                - img [ref=e138]
+                - strong [ref=e140]: Playtime
+              - button "Outing" [ref=e141] [cursor=pointer]:
+                - img [ref=e143]
+                - strong [ref=e146]: Outing
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "Today's Timeline" [level=5] [ref=e150]
+              - generic [ref=e151]: April 28, 2026
+            - group "Timeline order" [ref=e152]:
+              - button "Asc" [ref=e153] [cursor=pointer]
+              - button "Desc" [pressed] [ref=e154] [cursor=pointer]
+      - navigation "Mobile navigation" [ref=e158]:
+        - link "Home" [ref=e159] [cursor=pointer]:
+          - /url: /
+          - img [ref=e160]
+          - generic [ref=e163]: Home
+        - link "History" [ref=e164] [cursor=pointer]:
+          - /url: /history
+          - img [ref=e165]
+          - generic [ref=e168]: History
+        - button "Add entry" [ref=e169] [cursor=pointer]:
+          - img [ref=e170]
+        - link "Growth" [ref=e171] [cursor=pointer]:
+          - /url: /growth
+          - img [ref=e172]
+          - generic [ref=e178]: Growth
+        - generic [ref=e179]:
+          - button "More sections" [ref=e180]:
+            - img [ref=e181]
+            - generic [ref=e185]: More
+          - generic "More navigation":
+            - link "Sleep":
+              - /url: /sleep
+              - img
+              - generic: Sleep
+            - link "Feeding":
+              - /url: /feeding
+              - img
+              - generic: Feeding
+            - link "Diapers":
+              - /url: /diaper
+              - img
+              - generic: Diapers
+            - link "Pumping":
+              - /url: /pump
+              - img
+              - generic: Pumping
+            - link "Medicine":
+              - /url: /medicine
+              - img
+              - generic: Medicine
+            - link "Inventory":
+              - /url: /inventory
+              - img
+              - generic: Inventory
+  - button "Open Next.js Dev Tools" [ref=e191] [cursor=pointer]:
+    - img [ref=e192]
+  - alert [ref=e195]

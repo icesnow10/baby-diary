@@ -1,6 +1,6 @@
 export type Side = "left" | "right";
 export type DiaperType = "wet" | "dirty" | "mix" | "dry";
-export type DiaperCream = "assadura" | "hipoglos";
+export type DiaperCream = "assadura" | "hipoglos" | "both";
 export type FeedingKind = "nursing" | "bottle";
 export type BottleSource = "breastmilk" | "formula";
 export type MedicineUnit = "ml" | "drops" | "tsp";
@@ -56,8 +56,8 @@ export interface GrowthEntry {
 
 export interface MedicineDose {
   name: string;
-  amount: number;
-  unit: MedicineUnit;
+  amount?: number;
+  unit?: MedicineUnit;
 }
 
 export interface MedicineEntry {
@@ -68,6 +68,12 @@ export interface MedicineEntry {
 }
 
 export interface BathEntry {
+  id: string;
+  time: string; // ISO
+  notes?: string;
+}
+
+export interface PlaytimeEntry {
   id: string;
   time: string; // ISO
   notes?: string;
@@ -98,6 +104,7 @@ export interface BabyData {
   growth: GrowthEntry[];
   medicine: MedicineEntry[];
   bath: BathEntry[];
+  playtime: PlaytimeEntry[];
   outing: OutingEntry[];
 }
 
@@ -118,6 +125,7 @@ export const EMPTY_DATA: BabyData = {
   growth: [],
   medicine: [],
   bath: [],
+  playtime: [],
   outing: [],
 };
 
@@ -130,4 +138,5 @@ export type DataKey =
   | "growth"
   | "medicine"
   | "bath"
+  | "playtime"
   | "outing";

@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, Input, Radio, Select, Table, Typography } from "antd";
+import { Button, DatePicker, Form, Radio, Select, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import AppShell from "@/components/AppShell";
@@ -14,7 +14,6 @@ export default function DiaperPage() {
     { title: "Time", dataIndex: "time", render: formatDateTime },
     { title: "Type", dataIndex: "type" },
     { title: "Cream", dataIndex: "cream", render: (value) => value ?? "-" },
-    { title: "Notes", dataIndex: "notes" },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("diaper", entry.id)} /> },
   ];
 
@@ -27,7 +26,7 @@ export default function DiaperPage() {
           layout="vertical"
           initialValues={{ type: "wet" }}
           onFinish={async (values) => {
-            await add("diaper", { id: newId(), time: values.time.toISOString(), type: values.type, cream: values.cream, notes: values.notes });
+            await add("diaper", { id: newId(), time: values.time.toISOString(), type: values.type, cream: values.cream });
             form.resetFields();
           }}
         >
@@ -39,10 +38,7 @@ export default function DiaperPage() {
               <Radio.Group optionType="button" options={[{ label: "Wet", value: "wet" }, { label: "Dirty", value: "dirty" }, { label: "Mix", value: "mix" }, { label: "Dry", value: "dry" }]} />
             </Form.Item>
             <Form.Item name="cream" label="Diaper cream">
-              <Select allowClear options={[{ value: "assadura", label: "Assadura" }, { value: "hipoglos", label: "Hipoglos" }]} />
-            </Form.Item>
-            <Form.Item name="notes" label="Notes">
-              <Input />
+              <Select allowClear options={[{ value: "assadura", label: "Assadura" }, { value: "hipoglos", label: "Hipoglos" }, { value: "both", label: "Both" }]} />
             </Form.Item>
           </div>
           <Button type="primary" htmlType="submit">

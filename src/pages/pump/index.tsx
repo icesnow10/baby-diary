@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, Input, InputNumber, Select, Table, Typography } from "antd";
+import { Button, DatePicker, Form, InputNumber, Select, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import AppShell from "@/components/AppShell";
@@ -34,7 +34,6 @@ export default function PumpPage() {
               start: values.start.toISOString(),
               finish: values.finish.toISOString(),
               volumeMl: values.volumeMl,
-              notes: values.notes,
             });
             form.resetFields();
           }}
@@ -51,9 +50,6 @@ export default function PumpPage() {
             </Form.Item>
             <Form.Item name="volumeMl" label="Volume (ml)">
               <InputNumber min={0} style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="notes" label="Notes">
-              <Input />
             </Form.Item>
           </div>
           <Button type="primary" htmlType="submit">

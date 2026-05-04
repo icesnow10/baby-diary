@@ -33,9 +33,9 @@ export const CATEGORY_META: Record<CategoryKey, CategoryMeta> = {
   },
   diaper: {
     label: "Fralda",
-    color: "#e0a91a",
-    bg: "#fff8e1",
-    line: "#ffe9a8",
+    color: "#38bc94",
+    bg: "#eefdf8",
+    line: "#c9f3e5",
     href: "/diaper",
   },
   pump: {

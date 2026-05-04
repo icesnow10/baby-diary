@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, Input, InputNumber, Radio, Select, Table, Typography } from "antd";
+import { Button, DatePicker, Form, InputNumber, Radio, Select, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import AppShell from "@/components/AppShell";
@@ -16,7 +16,6 @@ export default function FeedingPage() {
     { title: "Time", dataIndex: "time", render: formatDateTime },
     { title: "Kind", dataIndex: "kind" },
     { title: "Details", render: (_, entry) => (entry.kind === "nursing" ? `Breast, ${entry.durationMin ?? 0} min` : `${entry.source}, ${entry.volumeMl ?? 0} ml`) },
-    { title: "Notes", dataIndex: "notes" },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("feeding", entry.id)} /> },
   ];
 
@@ -36,7 +35,6 @@ export default function FeedingPage() {
               durationMin: values.kind === "nursing" ? values.durationMin : undefined,
               source: values.kind === "bottle" ? values.source : undefined,
               volumeMl: values.kind === "bottle" ? values.volumeMl : undefined,
-              notes: values.notes,
             });
             form.resetFields();
           }}
@@ -64,9 +62,6 @@ export default function FeedingPage() {
                 </Form.Item>
               </>
             )}
-            <Form.Item name="notes" label="Notes">
-              <Input />
-            </Form.Item>
           </div>
           <Button type="primary" htmlType="submit">
             Save feeding

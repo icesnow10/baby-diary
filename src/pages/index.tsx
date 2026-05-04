@@ -1,50 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import type React from "react";
-import { Button, Col, DatePicker, Form, Input, InputNumber, Modal, Radio, Row, Select, Space, Spin, Typography } from "antd";
+import { useRouter } from "next/router";
+import { Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, Modal, Radio, Row, Space, Spin, Typography } from "antd";
 import dayjs from "dayjs";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Baby, BarChart3, Bath, BriefcaseMedical, CalendarDays, ChevronRight, Milk, Moon, Pill, Ruler, Trees } from "lucide-react";
+import { BarChart3, Bath, CalendarDays, Gamepad2, Moon, Pill, Trees } from "lucide-react";
 import AppShell from "@/components/AppShell";
+import { BottleIcon, DiaperIcon, PumpBottleIcon } from "@/components/icons";
+import DailySummary from "@/components/DailySummary";
+import QuickAddGrid from "@/components/QuickAddGrid";
+import Timeline, { TimelineSortOrder, buildTimelineRows, timelineMetricStyles } from "@/components/Timeline";
 import { useData } from "@/context/DataContext";
-import { durationMinutes, formatDuration, newId, todayRange } from "@/lib/format";
+import { formatDuration, newId, todayRange } from "@/lib/format";
+import type { DiaperCream, DiaperEntry, DiaperType } from "@/lib/types";
 
-type RecordType = "sleep" | "feeding" | "diaper" | "pump" | "medicine" | "growth" | "bath" | "outing";
+type RecordType = "sleep" | "feeding" | "diaper" | "pump" | "medicine" | "growth" | "bath" | "playtime" | "outing";
 
-type TimelineRow = {
-  id: string;
-  time: string;
-  windowAnchor: string;
-  title: string;
-  detail: string;
-  tone: string;
-  icon: React.ReactNode;
-  recordType: RecordType;
-  recordId: string;
-};
+const metricStyles = timelineMetricStyles;
 
-const metricStyles = {
-  sleep: { "--metric-bg": "#f8ecff", "--metric-line": "#ecd6ff", "--metric-color": "#9d6ee8" },
-  feed: { "--metric-bg": "#fff0f5", "--metric-line": "#ffd5e4", "--metric-color": "#ff5f93" },
-  diaper: { "--metric-bg": "#fff8e1", "--metric-line": "#ffe9a8", "--metric-color": "#e0a91a" },
-  pump: { "--metric-bg": "#ffecec", "--metric-line": "#ffc8c8", "--metric-color": "#e0524d" },
-  med: { "--metric-bg": "#fff5e8", "--metric-line": "#ffe0b5", "--metric-color": "#ef9634" },
-  bath: { "--metric-bg": "#e6f6ff", "--metric-line": "#c5e6fb", "--metric-color": "#3aa4d8" },
-  outing: { "--metric-bg": "#e9f8ed", "--metric-line": "#bfe7c8", "--metric-color": "#2f9e52" },
-} as Record<string, React.CSSProperties>;
-
-function timeOnToday(value: dayjs.Dayjs) {
-  return dayjs()
+function timeOnDate(value: dayjs.Dayjs, baseSource?: string | dayjs.Dayjs | null) {
+  const base = baseSource ? dayjs(baseSource) : dayjs();
+  return base
     .hour(value.hour())
     .minute(value.minute())
     .second(0)
     .millisecond(0);
 }
 
-function timeRangeOnToday(startValue: dayjs.Dayjs, endValue: dayjs.Dayjs) {
-  const rangeStart = timeOnToday(startValue);
-  let rangeEnd = timeOnToday(endValue);
+function timeOnToday(value: dayjs.Dayjs) {
+  return timeOnDate(value);
+}
+
+function timeRangeOnDate(startValue: dayjs.Dayjs, endValue: dayjs.Dayjs, baseSource?: string | dayjs.Dayjs | null) {
+  const rangeStart = timeOnDate(startValue, baseSource);
+  let rangeEnd = timeOnDate(endValue, baseSource);
   if (rangeEnd.isBefore(rangeStart) || rangeEnd.isSame(rangeStart)) rangeEnd = rangeEnd.add(1, "day");
   return [rangeStart, rangeEnd] as const;
+}
+
+function timeRangeOnToday(startValue: dayjs.Dayjs, endValue: dayjs.Dayjs) {
+  return timeRangeOnDate(startValue, endValue);
+}
+
+function buildDiaperPayload(
+  values: { time: dayjs.Dayjs; diaperType: DiaperType; cream?: DiaperCream },
+  baseSource?: string | dayjs.Dayjs | null,
+) {
+  return {
+    time: timeOnDate(values.time, baseSource).toISOString(),
+    type: values.diaperType,
+    cream: values.cream,
+  };
 }
 
 function NativeTimeInput({
@@ -67,9 +73,15 @@ function NativeTimeInput({
       onChange?.(undefined);
       return;
     }
-    const padded = digits.padStart(4, "0");
-    const hour = Math.min(Number(padded.slice(0, 2)), 23);
-    const minute = Math.min(Number(padded.slice(2, 4)), 59);
+    if (digits.length < 3) {
+      setDraft(digits);
+      onChange?.(undefined);
+      return;
+    }
+    const hourDigits = digits.length <= 3 ? digits.slice(0, 1) : digits.slice(0, 2);
+    const minuteDigits = digits.length <= 3 ? digits.slice(1) : digits.slice(2);
+    const hour = Math.min(Number(hourDigits), 23);
+    const minute = Math.min(Number(minuteDigits.padEnd(2, "0")), 59);
     const formatted = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
     setDraft(formatted);
     onChange?.(dayjs().hour(hour).minute(minute).second(0).millisecond(0));
@@ -80,12 +92,16 @@ function NativeTimeInput({
       className="nativeTimeInput"
       type="text"
       inputMode="numeric"
-      pattern="[0-9]*"
       placeholder="HH:mm"
       value={draft}
       onChange={(event) => {
-        const digits = event.target.value.replace(/\D/g, "").slice(0, 4);
-        const next = digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
+        const raw = event.target.value;
+        const digits = raw.replace(/\D/g, "").slice(0, 4);
+        const next = raw.includes(":")
+          ? raw.replace(/[^\d:]/g, "").slice(0, 5)
+          : digits.length > 2
+            ? `${digits.slice(0, -2)}:${digits.slice(-2)}`
+            : digits;
         setDraft(next);
         if (digits.length === 4) commit(digits);
         if (!digits) {
@@ -98,10 +114,16 @@ function NativeTimeInput({
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const { data, loading, refresh, add, update, remove } = useData();
   const [activeModal, setActiveModal] = useState<RecordType | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [start, end] = todayRange();
+  const [modalDefaults, setModalDefaults] = useState<{ feedingEndTime?: string; diaperTime?: string; time?: string }>({});
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddDefaultTime, setQuickAddDefaultTime] = useState<string | undefined>(undefined);
+  const [timelineSortOrder, setTimelineSortOrder] = useState<TimelineSortOrder>("desc");
+  const [start, end] = useMemo(() => todayRange(), []);
+  const todayLabel = useMemo(() => dayjs().format("MMMM D, YYYY"), []);
 
   const editingEntry = useMemo(() => {
     if (!activeModal || !editingId) return null;
@@ -109,149 +131,104 @@ export default function HomePage() {
     return list?.find((entry) => entry.id === editingId) ?? null;
   }, [activeModal, editingId, data]);
 
-  const openModal = (type: RecordType, id: string | null = null) => {
+  const pairedBathDiaper = useMemo(() => {
+    if (activeModal !== "bath" || !editingEntry?.time) return undefined;
+    return data.diaper.find((entry) => dayjs(entry.time).isSame(dayjs(editingEntry.time), "minute"));
+  }, [activeModal, editingEntry, data.diaper]);
+
+  const openModal = (type: RecordType, id: string | null = null, defaults: { feedingEndTime?: string; diaperTime?: string; time?: string } = {}) => {
+    if (!id && (type === "sleep" || type === "feeding")) {
+      const ongoing = type === "sleep"
+        ? data.sleep.find((entry) => !entry.end)
+        : data.feeding.find((entry) => entry.kind === "nursing" && !entry.end && !entry.durationMin);
+      if (ongoing) {
+        Modal.confirm({
+          title: type === "sleep" ? "Sleep already in progress" : "Feeding already in progress",
+          content: `There is already an ongoing ${type === "sleep" ? "sleep" : "feeding"} activity. What would you like to do?`,
+          okText: "Go to current activity",
+          cancelText: "Overwrite",
+          closable: false,
+          maskClosable: false,
+          centered: true,
+          okButtonProps: { className: "entrySave" },
+          onOk: () => {
+            setModalDefaults(defaults);
+            setActiveModal(type);
+            setEditingId(ongoing.id);
+          },
+          onCancel: async () => {
+            await remove(type, ongoing.id, { silent: true });
+            setModalDefaults(defaults);
+            setActiveModal(type);
+            setEditingId(null);
+          },
+        });
+        return;
+      }
+    }
+    setModalDefaults(defaults);
     setActiveModal(type);
     setEditingId(id);
+  };
+
+  const openQuickAdd = (defaultTime?: string) => {
+    setQuickAddDefaultTime(defaultTime);
+    setQuickAddOpen(true);
+  };
+
+  const handleQuickAddSelect = (type: RecordType) => {
+    const defaults: { time?: string; feedingEndTime?: string; diaperTime?: string } = {};
+    if (quickAddDefaultTime) {
+      if (type === "diaper") defaults.diaperTime = quickAddDefaultTime;
+      else defaults.time = quickAddDefaultTime;
+    }
+    setQuickAddOpen(false);
+    setQuickAddDefaultTime(undefined);
+    openModal(type, null, defaults);
   };
 
   const closeModal = () => {
     setActiveModal(null);
     setEditingId(null);
+    setModalDefaults({});
   };
 
-  const summary = useMemo(() => {
-    const inToday = (iso: string) => {
-      const t = dayjs(iso);
-      return t.isAfter(start) && t.isBefore(end);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ type?: RecordType; id?: string | null; defaults?: { feedingEndTime?: string; diaperTime?: string; time?: string } }>).detail;
+      if (!detail?.type) return;
+      openModal(detail.type, detail.id ?? null, detail.defaults ?? {});
     };
-    const sleepToday = data.sleep
-      .filter((entry) => inToday(entry.end ?? dayjs().toISOString()))
-      .reduce((total, entry) => total + durationMinutes(entry.start, entry.end ?? dayjs().toISOString()), 0);
-    const feeds = data.feeding.filter((entry) => {
-      if (entry.kind === "nursing") return inToday(entry.end ?? entry.time);
-      return inToday(entry.time);
-    }).length;
-    const diapers = data.diaper.filter((entry) => inToday(entry.time)).length;
-    const pumping = data.pump.filter((entry) => inToday(entry.finish)).length;
-    const medicines = data.medicine.filter((entry) => inToday(entry.time)).length;
-    const baths = data.bath.filter((entry) => inToday(entry.time)).length;
-    const outings = data.outing.filter((entry) => inToday(entry.end ?? entry.start ?? entry.time ?? dayjs().toISOString())).length;
-    const latestGrowth = [...data.growth].sort((a, b) => b.date.localeCompare(a.date))[0];
+    document.addEventListener("baby-diary-open-modal", handler);
+    return () => document.removeEventListener("baby-diary-open-modal", handler);
+  }, []);
 
-    return { sleepToday, feeds, diapers, pumping, medicines, baths, outings, latestGrowth };
-  }, [data, start, end]);
+  useEffect(() => {
+    if (!router.isReady) return;
+    const { edit, quickAdd } = router.query;
+    const editStr = Array.isArray(edit) ? edit[0] : edit;
+    const quickAddStr = Array.isArray(quickAdd) ? quickAdd[0] : quickAdd;
+    if (editStr) {
+      const [type, id] = editStr.split(":");
+      if (type && id) openModal(type as RecordType, id);
+    } else if (quickAddStr) {
+      openQuickAdd(quickAddStr);
+    }
+    if (editStr || quickAddStr) {
+      router.replace(router.pathname === "/home" ? "/home" : "/", undefined, { shallow: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, router.query.edit, router.query.quickAdd]);
 
-  const timeline = useMemo<TimelineRow[]>(() => {
-    const rows: TimelineRow[] = [
-      ...data.sleep.map((entry) => {
-        const startDay = dayjs(entry.start).startOf("day");
-        const endDayDelta = entry.end ? dayjs(entry.end).startOf("day").diff(startDay, "day") : 0;
-        const overnightSuffix = endDayDelta > 0 ? ` (+${endDayDelta}d)` : "";
-        const detail = entry.end
-          ? `${dayjs(entry.start).format("HH:mm")} - ${dayjs(entry.end).format("HH:mm")}${overnightSuffix} (${formatDuration(entry.start, entry.end)})`
-          : `${dayjs(entry.start).format("HH:mm")} - now (${formatDuration(entry.start, dayjs().toISOString())})`;
-        return {
-          id: `sleep-${entry.id}`,
-          time: entry.start,
-          windowAnchor: entry.end ?? dayjs().toISOString(),
-          title: "Sleep",
-          detail,
-          tone: "sleep",
-          icon: <Moon size={18} />,
-          recordType: "sleep" as RecordType,
-          recordId: entry.id,
-        };
-      }),
-      ...data.feeding.map((entry) => {
-        let detail: string;
-        if (entry.kind === "nursing") {
-          if (entry.end) {
-            const dayDelta = dayjs(entry.end).startOf("day").diff(dayjs(entry.time).startOf("day"), "day");
-            const overnight = dayDelta > 0 ? ` (+${dayDelta}d)` : "";
-            detail = `Breast - ${formatDuration(entry.time, entry.end)}${overnight}`;
-          } else if (entry.durationMin) {
-            detail = `Breast - ${entry.durationMin} min`;
-          } else {
-            detail = "Breast - in progress";
-          }
-        } else {
-          detail = `${entry.source} - ${entry.volumeMl ?? 0} ml`;
-        }
-        return {
-          id: `feeding-${entry.id}`,
-          time: entry.time,
-          windowAnchor: entry.kind === "nursing" ? entry.end ?? dayjs().toISOString() : entry.time,
-          title: entry.kind === "nursing" ? "Nursing" : "Feeding (Bottle)",
-          detail,
-          tone: "feed",
-          icon: <Milk size={18} />,
-          recordType: "feeding" as RecordType,
-          recordId: entry.id,
-        };
-      }),
-      ...data.diaper.map((entry) => ({
-        id: `diaper-${entry.id}`,
-        time: entry.time,
-        windowAnchor: entry.time,
-        title: "Diaper",
-        detail: `${entry.type}${entry.cream ? ` - Diaper cream (${entry.cream})` : ""}`,
-        tone: "diaper",
-        icon: <Baby size={18} />,
-        recordType: "diaper" as RecordType,
-        recordId: entry.id,
-      })),
-      ...data.pump.map((entry) => ({
-        id: `pump-${entry.id}`,
-        time: entry.start,
-        windowAnchor: entry.finish,
-        title: "Pumping",
-        detail: `${entry.side} ${formatDuration(entry.start, entry.finish)}${entry.volumeMl ? ` / ${entry.volumeMl} ml` : ""}`,
-        tone: "pump",
-        icon: <BriefcaseMedical size={18} />,
-        recordType: "pump" as RecordType,
-        recordId: entry.id,
-      })),
-      ...data.medicine.map((entry) => ({
-        id: `medicine-${entry.id}`,
-        time: entry.time,
-        windowAnchor: entry.time,
-        title: "Medicine",
-        detail: entry.doses.map((dose) => `${dose.name} - ${dose.amount} ${dose.unit}`).join(", "),
-        tone: "med",
-        icon: <Pill size={18} />,
-        recordType: "medicine" as RecordType,
-        recordId: entry.id,
-      })),
-      ...data.bath.map((entry) => ({
-        id: `bath-${entry.id}`,
-        time: entry.time,
-        windowAnchor: entry.time,
-        title: "Bath",
-        detail: entry.notes ?? "Bath time",
-        tone: "bath",
-        icon: <Bath size={18} />,
-        recordType: "bath" as RecordType,
-        recordId: entry.id,
-      })),
-      ...data.outing.map((entry) => ({
-        id: `outing-${entry.id}`,
-        time: entry.start ?? entry.time ?? dayjs().toISOString(),
-        windowAnchor: entry.end ?? entry.start ?? entry.time ?? dayjs().toISOString(),
-        title: "Outing",
-        detail: `${entry.start ? `${dayjs(entry.start).format("HH:mm")} - ${entry.end ? dayjs(entry.end).format("HH:mm") : "now"}` : ""}${entry.place ? ` / ${entry.place}` : ""}` || "Outing",
-        tone: "outing",
-        icon: <Trees size={18} />,
-        recordType: "outing" as RecordType,
-        recordId: entry.id,
-      })),
-    ];
+  const latestGrowth = useMemo(() => [...data.growth].sort((a, b) => b.date.localeCompare(a.date))[0], [data.growth]);
+
+  const timeline = useMemo(() => {
+    const rows = buildTimelineRows(data);
     return rows
       .filter((row) => {
         const anchor = dayjs(row.windowAnchor);
         return anchor.isAfter(start) && anchor.isBefore(end);
       })
-      .sort((a, b) => dayjs(a.time).valueOf() - dayjs(b.time).valueOf())
-      .slice(0, 8);
   }, [data, start, end]);
 
   const growthChart = useMemo(
@@ -262,17 +239,8 @@ export default function HomePage() {
     [data.growth],
   );
 
-  const quickAdd = [
-    { type: "sleep" as const, label: "Sleep", icon: <Moon size={25} />, tone: "sleep" },
-    { type: "feeding" as const, label: "Feeding", icon: <Milk size={25} />, tone: "feed" },
-    { type: "diaper" as const, label: "Diaper", icon: <Baby size={25} />, tone: "diaper" },
-    { type: "pump" as const, label: "Pumping", icon: <BriefcaseMedical size={25} />, tone: "pump" },
-    { type: "bath" as const, label: "Bath", icon: <Bath size={25} />, tone: "bath" },
-    { type: "outing" as const, label: "Outing", icon: <Trees size={25} />, tone: "outing" },
-  ];
-
   return (
-    <AppShell title="Emma" subtitle="3 months, 12 days" onAddClick={() => openModal("feeding")}>
+    <AppShell title="Emma" subtitle="3 months, 12 days" onAddClick={() => openQuickAdd()}>
       <Space direction="vertical" size={18} style={{ width: "100%" }}>
         <section className="dashboardHero">
           <div>
@@ -286,72 +254,32 @@ export default function HomePage() {
           </Button>
         </section>
 
-        <section className="panel summaryPanel">
-          <Typography.Title className="mobileSectionTitle" level={5}>Today's Summary</Typography.Title>
-          <div className="summaryGrid">
-            <div className="babyMetric" style={metricStyles.sleep}>
-              <div className="babyMetricIcon"><Moon size={24} /></div>
-              <strong>{formatDuration(summary.sleepToday)}</strong>
-              <span>Sleep</span>
-            </div>
-            <div className="babyMetric" style={metricStyles.feed}>
-              <div className="babyMetricIcon"><Milk size={24} /></div>
-              <strong>{summary.feeds}</strong>
-              <span>Feedings</span>
-            </div>
-            <div className="babyMetric" style={metricStyles.diaper}>
-              <div className="babyMetricIcon"><Baby size={24} /></div>
-              <strong>{summary.diapers}</strong>
-              <span>Diapers</span>
-            </div>
-            <div className="babyMetric" style={metricStyles.pump}>
-              <div className="babyMetricIcon"><BriefcaseMedical size={24} /></div>
-              <strong>{summary.pumping}</strong>
-              <span>Pumping</span>
-            </div>
-            <div className="babyMetric" style={metricStyles.bath}>
-              <div className="babyMetricIcon"><Bath size={24} /></div>
-              <strong>{summary.baths}</strong>
-              <span>Bath</span>
-            </div>
-          </div>
-        </section>
-
+        <DailySummary
+          data={data}
+          start={start}
+          end={end}
+          title="Today's Summary"
+          label={todayLabel}
+        />
         <section className="panel mobileQuickPanel">
           <Typography.Title level={5} style={{ margin: 0 }}>Quick Add</Typography.Title>
           <Typography.Text type="secondary">Tap to add</Typography.Text>
-          <div className="quickAddGrid">
-            {quickAdd.map((item) => (
-              <button className="quickAddTile" type="button" key={item.type} style={metricStyles[item.tone]} onClick={() => openModal(item.type)}>
-                <span className="quickAddIcon">{item.icon}</span>
-                <strong>{item.label}</strong>
-              </button>
-            ))}
-          </div>
+          <QuickAddGrid onSelect={(type) => openModal(type as RecordType)} />
         </section>
 
         <section className="panel todayTimelinePanel">
-          <Typography.Title level={5} style={{ margin: 0 }}>Today's Timeline</Typography.Title>
-          <div className="todayTimelineList">
-            {timeline.map((entry) => (
-              <button
-                className="todayTimelineRow"
-                key={`today-${entry.id}`}
-                style={metricStyles[entry.tone]}
-                type="button"
-                onClick={() => openModal(entry.recordType, entry.recordId)}
-              >
-                <div className="todayTimelineTime">{dayjs(entry.time).format("HH:mm")}</div>
-                <div className="todayTimelineRail"><span /></div>
-                <div className="todayTimelineIcon">{entry.icon}</div>
-                <div className="todayTimelineCard">
-                  <strong>{entry.title}</strong>
-                  <span>{entry.detail}</span>
-                </div>
-                <ChevronRight className="todayTimelineChevron" size={15} />
-              </button>
-            ))}
+          <div className="mobileSectionHeader">
+            <Typography.Title level={5} style={{ margin: 0 }}>Today's Timeline</Typography.Title>
+            <span>{todayLabel}</span>
           </div>
+          <Timeline
+            entries={timeline}
+            onEdit={(entry) => openModal(entry.recordType as RecordType, entry.recordId)}
+            onAddBetween={(iso) => openQuickAdd(iso)}
+            showSortControl
+            sortOrder={timelineSortOrder}
+            onSortOrderChange={setTimelineSortOrder}
+          />
         </section>
 
         <Row gutter={[16, 16]}>
@@ -359,9 +287,9 @@ export default function HomePage() {
             <section className="panel desktopOnlyPanel">
               <Typography.Title level={4}>Growth</Typography.Title>
               <Row gutter={12} style={{ marginBottom: 16 }}>
-                <Col span={8}><strong>{summary.latestGrowth?.weightKg ?? 0} kg</strong><br /><Typography.Text type="secondary">Weight</Typography.Text></Col>
-                <Col span={8}><strong>{summary.latestGrowth?.heightCm ?? 0} cm</strong><br /><Typography.Text type="secondary">Height</Typography.Text></Col>
-                <Col span={8}><strong>{summary.latestGrowth?.headCm ?? 0} cm</strong><br /><Typography.Text type="secondary">Head</Typography.Text></Col>
+                <Col span={8}><strong>{latestGrowth?.weightKg ?? 0} kg</strong><br /><Typography.Text type="secondary">Weight</Typography.Text></Col>
+                <Col span={8}><strong>{latestGrowth?.heightCm ?? 0} cm</strong><br /><Typography.Text type="secondary">Height</Typography.Text></Col>
+                <Col span={8}><strong>{latestGrowth?.headCm ?? 0} cm</strong><br /><Typography.Text type="secondary">Head</Typography.Text></Col>
               </Row>
               <div className="chartBox short">
                 <ResponsiveContainer width="100%" height="100%">
@@ -389,13 +317,43 @@ export default function HomePage() {
         </Row>
 
       </Space>
+      <Modal
+        open={quickAddOpen}
+        centered
+        footer={null}
+        maskClosable={false}
+        keyboard={false}
+        onCancel={() => {
+          setQuickAddOpen(false);
+          setQuickAddDefaultTime(undefined);
+        }}
+        title={<strong>Quick Add</strong>}
+        className="addRecordModal quickAddModal"
+      >
+        <QuickAddGrid onSelect={(type) => handleQuickAddSelect(type as RecordType)} />
+        <div className="modalActions" style={{ marginTop: 12 }}>
+          <Button
+            className="modalClose"
+            onClick={() => {
+              setQuickAddOpen(false);
+              setQuickAddDefaultTime(undefined);
+            }}
+          >
+            Close
+          </Button>
+        </div>
+      </Modal>
       <AddRecordModal
         type={activeModal}
         editingEntry={editingEntry}
+        pairedBathDiaper={pairedBathDiaper}
         latestBathTime={[...data.bath].sort((a, b) => dayjs(b.time).valueOf() - dayjs(a.time).valueOf())[0]?.time}
         latestFeedingTime={[...data.feeding]
           .map((entry) => (entry.kind === "nursing" ? entry.end ?? entry.time : entry.time))
           .sort((a, b) => dayjs(b).valueOf() - dayjs(a).valueOf())[0]}
+        defaultFeedingEndTime={modalDefaults.feedingEndTime}
+        defaultDiaperTime={modalDefaults.diaperTime}
+        defaultTime={modalDefaults.time}
         openSleep={data.sleep.find((entry) => !entry.end)}
         openFeeding={data.feeding.find((entry) => entry.kind === "nursing" && !entry.end && !entry.durationMin)}
         onSleepPersist={refresh}
@@ -407,16 +365,16 @@ export default function HomePage() {
           closeModal();
         }}
         onSleepCancel={async (id) => {
-          await remove("sleep", id);
+          await remove("sleep", id, { silent: true });
         }}
         onFeedingCancel={async (id) => {
-          await remove("feeding", id);
+          await remove("feeding", id, { silent: true });
         }}
         onSubmit={async (type, values) => {
           const editId: string | undefined = editingId ?? undefined;
           if (type === "sleep") {
             const liveSleep = data.sleep.find((entry) => entry.id === values.sleepId);
-            const baseSource = editingEntry?.start ?? liveSleep?.start;
+            const baseSource = editingEntry?.start ?? liveSleep?.start ?? modalDefaults.time;
             const baseDay = baseSource
               ? dayjs(baseSource).startOf("day")
               : dayjs().startOf("day");
@@ -425,13 +383,16 @@ export default function HomePage() {
               .minute(values.startTime.minute())
               .second(0)
               .millisecond(0);
-            let sleepEnd = baseDay
-              .hour(values.endTime.hour())
-              .minute(values.endTime.minute())
-              .second(0)
-              .millisecond(0);
-            if (sleepEnd.isBefore(sleepStart) || sleepEnd.isSame(sleepStart)) sleepEnd = sleepEnd.add(1, "day");
-            if (!baseSource) {
+            let sleepEnd: dayjs.Dayjs | undefined;
+            if (values.endTime) {
+              sleepEnd = baseDay
+                .hour(values.endTime.hour())
+                .minute(values.endTime.minute())
+                .second(0)
+                .millisecond(0);
+              if (sleepEnd.isBefore(sleepStart) || sleepEnd.isSame(sleepStart)) sleepEnd = sleepEnd.add(1, "day");
+            }
+            if (!baseSource && sleepEnd) {
               const now = dayjs();
               if (sleepStart.isAfter(now) && sleepEnd.isAfter(now)) {
                 sleepStart = sleepStart.subtract(1, "day");
@@ -439,13 +400,15 @@ export default function HomePage() {
               }
             }
             const targetId = editId ?? values.sleepId;
-            const conflict = data.sleep.find((s) => {
-              if (s.id === targetId) return false;
-              if (!s.end) return false;
-              const sStart = dayjs(s.start);
-              const sEnd = dayjs(s.end);
-              return sleepStart.isBefore(sEnd) && sStart.isBefore(sleepEnd);
-            });
+            const conflict = sleepEnd
+              ? data.sleep.find((s) => {
+                  if (s.id === targetId) return false;
+                  if (!s.end) return false;
+                  const sStart = dayjs(s.start);
+                  const sEnd = dayjs(s.end);
+                  return sleepStart.isBefore(sEnd) && sStart.isBefore(sleepEnd);
+                })
+              : undefined;
             if (conflict) {
               Modal.error({
                 title: "Sleep conflict",
@@ -455,15 +418,18 @@ export default function HomePage() {
               return;
             }
             if (targetId) {
-              await update("sleep", targetId, { start: sleepStart.toISOString(), end: sleepEnd.toISOString() });
+              await update("sleep", targetId, {
+                start: sleepStart.toISOString(),
+                end: sleepEnd ? sleepEnd.toISOString() : null,
+              });
             } else {
-              await add("sleep", { id: newId(), start: sleepStart.toISOString(), end: sleepEnd.toISOString() });
+              await add("sleep", { id: newId(), start: sleepStart.toISOString(), end: sleepEnd?.toISOString() });
             }
           }
           if (type === "feeding") {
             if (values.mode === "breast") {
               const liveFeeding = data.feeding.find((entry) => entry.id === values.feedingId);
-              const baseSource = editingEntry?.time ?? liveFeeding?.time;
+              const baseSource = editingEntry?.time ?? liveFeeding?.time ?? modalDefaults.time ?? modalDefaults.feedingEndTime;
               const baseDay = baseSource
                 ? dayjs(baseSource).startOf("day")
                 : dayjs().startOf("day");
@@ -472,29 +438,34 @@ export default function HomePage() {
                 .minute(values.startTime.minute())
                 .second(0)
                 .millisecond(0);
-              let feedEnd = baseDay
-                .hour(values.endTime.hour())
-                .minute(values.endTime.minute())
-                .second(0)
-                .millisecond(0);
-              if (feedEnd.isBefore(feedStart) || feedEnd.isSame(feedStart)) feedEnd = feedEnd.add(1, "day");
-              if (!baseSource) {
+              let feedEnd: dayjs.Dayjs | undefined;
+              if (values.endTime) {
+                feedEnd = baseDay
+                  .hour(values.endTime.hour())
+                  .minute(values.endTime.minute())
+                  .second(0)
+                  .millisecond(0);
+                if (feedEnd.isBefore(feedStart) || feedEnd.isSame(feedStart)) feedEnd = feedEnd.add(1, "day");
+              }
+              if (!baseSource && feedEnd) {
                 const now = dayjs();
                 if (feedStart.isAfter(now) && feedEnd.isAfter(now)) {
                   feedStart = feedStart.subtract(1, "day");
                   feedEnd = feedEnd.subtract(1, "day");
                 }
               }
-              const durationMin = feedEnd.diff(feedStart, "minute");
+              const durationMin = feedEnd ? feedEnd.diff(feedStart, "minute") : undefined;
               const targetId = editId ?? values.feedingId;
-              const conflict = data.feeding.find((f) => {
-                if (f.id === targetId) return false;
-                if (f.kind !== "nursing") return false;
-                if (!f.end) return false;
-                const fStart = dayjs(f.time);
-                const fEnd = dayjs(f.end);
-                return feedStart.isBefore(fEnd) && fStart.isBefore(feedEnd);
-              });
+              const conflict = feedEnd
+                ? data.feeding.find((f) => {
+                    if (f.id === targetId) return false;
+                    if (f.kind !== "nursing") return false;
+                    if (!f.end) return false;
+                    const fStart = dayjs(f.time);
+                    const fEnd = dayjs(f.end);
+                    return feedStart.isBefore(fEnd) && fStart.isBefore(feedEnd);
+                  })
+                : undefined;
               if (conflict) {
                 Modal.error({
                   title: "Nursing conflict",
@@ -506,8 +477,8 @@ export default function HomePage() {
               const payload = {
                 time: feedStart.toISOString(),
                 kind: "nursing" as const,
-                end: feedEnd.toISOString(),
-                durationMin,
+                end: feedEnd ? feedEnd.toISOString() : undefined,
+                durationMin: durationMin ?? undefined,
               };
               if (targetId) {
                 await update("feeding", targetId, payload);
@@ -515,12 +486,12 @@ export default function HomePage() {
                 await add("feeding", { id: newId(), ...payload });
             }
           } else {
+              const baseSource = editingEntry?.time ?? modalDefaults.time;
               const payload = {
-                time: timeOnToday(values.time).toISOString(),
+                time: timeOnDate(values.time, baseSource).toISOString(),
                 kind: "bottle" as const,
                 source: values.source,
                 volumeMl: values.volumeMl,
-                notes: values.notes,
               };
               if (editId) {
                 await update("feeding", editId, payload);
@@ -530,7 +501,8 @@ export default function HomePage() {
             }
           }
           if (type === "diaper") {
-            const payload = { time: timeOnToday(values.time).toISOString(), type: values.diaperType, cream: values.cream, notes: values.notes };
+            const baseSource = editingEntry?.time ?? modalDefaults.diaperTime ?? modalDefaults.time;
+            const payload = buildDiaperPayload(values, baseSource);
             if (editId) {
               await update("diaper", editId, payload);
             } else {
@@ -538,13 +510,13 @@ export default function HomePage() {
             }
           }
           if (type === "pump") {
-            const [pumpStart, pumpFinish] = timeRangeOnToday(values.startTime, values.endTime);
+            const baseSource = editingEntry?.start ?? modalDefaults.time;
+            const [pumpStart, pumpFinish] = timeRangeOnDate(values.startTime, values.endTime, baseSource);
             const payload = {
               side: values.side,
               start: pumpStart.toISOString(),
               finish: pumpFinish.toISOString(),
               volumeMl: values.volumeMl,
-              notes: values.notes,
             };
             if (editId) {
               await update("pump", editId, payload);
@@ -553,15 +525,28 @@ export default function HomePage() {
             }
           }
           if (type === "medicine") {
+            const doses = (values.medicines ?? [])
+              .map((value: string) => value?.trim())
+              .filter(Boolean)
+              .map((name: string) => ({ name }));
+            const baseSource = editingEntry?.time ?? modalDefaults.time;
             const payload = {
-              time: values.time.toISOString(),
-              doses: [{ name: values.name, amount: values.amount, unit: values.unit }],
-              notes: values.notes,
+              time: timeOnDate(values.time, baseSource).toISOString(),
+              doses,
             };
             if (editId) {
               await update("medicine", editId, payload);
             } else {
               await add("medicine", { id: newId(), ...payload });
+            }
+          }
+          if (type === "playtime") {
+            const baseSource = editingEntry?.time ?? modalDefaults.time;
+            const payload = { time: timeOnDate(values.time, baseSource).toISOString() };
+            if (editId) {
+              await update("playtime", editId, payload);
+            } else {
+              await add("playtime", { id: newId(), ...payload });
             }
           }
           if (type === "growth") {
@@ -578,15 +563,30 @@ export default function HomePage() {
             }
           }
           if (type === "bath") {
-            const payload = { time: timeOnToday(values.time).toISOString(), notes: values.notes };
+            const baseSource = editingEntry?.time ?? modalDefaults.time;
+            const bathTime = timeOnDate(values.time, baseSource);
+            const payload = { time: bathTime.toISOString() };
             if (editId) {
               await update("bath", editId, payload);
             } else {
               await add("bath", { id: newId(), ...payload });
             }
+            if (values.addDiaperChange) {
+              const diaperPayload = buildDiaperPayload({
+                time: values.diaperTime ?? values.time,
+                diaperType: values.bathDiaperType,
+                cream: values.bathDiaperCream,
+              }, pairedBathDiaper?.time ?? baseSource);
+              if (pairedBathDiaper?.id) {
+                await update("diaper", pairedBathDiaper.id, diaperPayload, { silent: true });
+              } else {
+                await add("diaper", { id: newId(), ...diaperPayload }, { silent: true });
+              }
+            }
           }
           if (type === "outing") {
-            const [outingStart, outingEnd] = timeRangeOnToday(values.startTime, values.endTime);
+            const baseSource = editingEntry?.start ?? editingEntry?.time ?? modalDefaults.time;
+            const [outingStart, outingEnd] = timeRangeOnDate(values.startTime, values.endTime, baseSource);
             const payload = { start: outingStart.toISOString(), end: outingEnd.toISOString(), place: values.place };
             if (editId) {
               await update("outing", editId, payload);
@@ -622,11 +622,81 @@ function FeedingModePills({ value, onChange }: { value?: string; onChange?: (nex
   );
 }
 
+function DiaperFields({
+  timeName = "time",
+  typeName = "diaperType",
+  creamName = "cream",
+  showQuickActions = false,
+  latestBathTime,
+  latestFeedingTime,
+  onNow,
+  onBeforeBath,
+  onBeforeFeeding,
+}: {
+  timeName?: string;
+  typeName?: string;
+  creamName?: string;
+  showQuickActions?: boolean;
+  latestBathTime?: string;
+  latestFeedingTime?: string;
+  onNow?: () => void;
+  onBeforeBath?: () => void;
+  onBeforeFeeding?: () => void;
+}) {
+  return (
+    <>
+      {showQuickActions ? (
+        <div className="diaperQuickRow">
+          <Button size="small" onClick={onNow}>
+            Now
+          </Button>
+          <Button size="small" disabled={!latestBathTime} onClick={onBeforeBath}>
+            Before bath
+          </Button>
+          <Button size="small" disabled={!latestFeedingTime} onClick={onBeforeFeeding}>
+            Before feeding
+          </Button>
+        </div>
+      ) : null}
+      <Form.Item name={timeName} label="Time" rules={[{ required: true }]}>
+        <NativeTimeInput />
+      </Form.Item>
+      <Form.Item name={typeName} label="Type">
+        <Radio.Group
+          optionType="button"
+          buttonStyle="solid"
+          options={[
+            { label: "Wet", value: "wet" },
+            { label: "Dirty", value: "dirty" },
+            { label: "Mix", value: "mix" },
+            { label: "Dry", value: "dry" },
+          ]}
+        />
+      </Form.Item>
+      <Form.Item name={creamName} label="Diaper cream">
+        <Radio.Group
+          optionType="button"
+          options={[
+            { label: "Assadura", value: "assadura" },
+            { label: "Hipoglos", value: "hipoglos" },
+            { label: "Both", value: "both" },
+            { label: "None", value: undefined },
+          ]}
+        />
+      </Form.Item>
+    </>
+  );
+}
+
 function AddRecordModal({
   type,
   editingEntry,
+  pairedBathDiaper,
   latestBathTime,
   latestFeedingTime,
+  defaultFeedingEndTime,
+  defaultDiaperTime,
+  defaultTime,
   openSleep,
   openFeeding,
   onSleepPersist,
@@ -639,8 +709,12 @@ function AddRecordModal({
 }: {
   type: RecordType | null;
   editingEntry?: any | null;
+  pairedBathDiaper?: DiaperEntry;
   latestBathTime?: string;
   latestFeedingTime?: string;
+  defaultFeedingEndTime?: string;
+  defaultDiaperTime?: string;
+  defaultTime?: string;
   openSleep?: { id: string; start: string };
   openFeeding?: { id: string; time: string };
   onSleepPersist: () => Promise<void>;
@@ -663,37 +737,44 @@ function AddRecordModal({
   const feedingStartTime = type === "feeding" ? sleepStartTime : undefined;
   const feedingEndTime = type === "feeding" ? sleepEndTime : undefined;
   const feedingId = Form.useWatch("feedingId", form);
+  const addDiaperChange = Form.useWatch("addDiaperChange", form);
 
   const meta = {
     sleep: { title: "Sleep", icon: <Moon size={22} />, tone: "sleep" },
-    feeding: { title: "Feeding", icon: <Milk size={22} />, tone: "feed" },
-    diaper: { title: "Diaper", icon: <Baby size={22} />, tone: "diaper" },
-    pump: { title: "Pumping", icon: <BriefcaseMedical size={22} />, tone: "pump" },
+    feeding: { title: "Feeding", icon: <BottleIcon size={22} />, tone: "feed" },
+    diaper: { title: "Diaper", icon: <DiaperIcon size={22} />, tone: "diaper" },
+    pump: { title: "Pumping", icon: <PumpBottleIcon size={22} />, tone: "pump" },
     medicine: { title: "Medicine", icon: <Pill size={22} />, tone: "med" },
     growth: { title: "Growth", icon: <BarChart3 size={22} />, tone: "sleep" },
     bath: { title: "Bath", icon: <Bath size={22} />, tone: "bath" },
+    playtime: { title: "Playtime", icon: <Gamepad2 size={22} />, tone: "play" },
     outing: { title: "Outing", icon: <Trees size={22} />, tone: "outing" },
   };
 
-  const initialValues = useMemo(
-    () => ({
-      time: dayjs(),
+  const getInitialValues = () => {
+    const now = dayjs();
+    return {
+      time: now,
       start: undefined,
       startTime: undefined,
-      end: dayjs().add(30, "minute"),
+      end: now.add(30, "minute"),
       endTime: undefined,
-      finish: dayjs().add(15, "minute"),
-      date: dayjs(),
+      finish: now.add(15, "minute"),
+      date: now,
       mode: "breast",
       side: "left",
       source: "breastmilk",
       diaperType: "wet",
       cream: undefined,
+      addDiaperChange: false,
+      diaperTime: now,
+      bathDiaperType: "wet",
+      bathDiaperCream: undefined,
       unit: "ml",
       name: undefined,
-    }),
-    [],
-  );
+      medicines: [""],
+    };
+  };
 
   const persistSleepStart = async (startValue: dayjs.Dayjs) => {
     const sleepStart = dayjs()
@@ -747,6 +828,10 @@ function AddRecordModal({
     });
     form.setFieldValue("feedingId", id);
     await onFeedingPersist();
+  };
+
+  const closePersistingDraft = async () => {
+    onClose();
   };
 
   useEffect(() => {
@@ -835,8 +920,10 @@ function AddRecordModal({
       open={Boolean(type)}
       centered
       footer={null}
-      onCancel={onClose}
-      className={type === "sleep" ? "addRecordModal sleepModal" : "addRecordModal"}
+      maskClosable={false}
+      keyboard={false}
+      onCancel={closePersistingDraft}
+      className={`addRecordModal tone-${current.tone}${type === "sleep" ? " sleepModal" : ""}`}
       title={
         <div className="modalTitle" style={metricStyles[current.tone]}>
           <span>{current.icon}</span>
@@ -845,6 +932,7 @@ function AddRecordModal({
       }
       afterOpenChange={(open) => {
         if (open) {
+          const initialValues = getInitialValues();
           let startTime: dayjs.Dayjs | undefined = initialValues.startTime;
           let endTime: dayjs.Dayjs | undefined;
           let mode: string = initialValues.mode;
@@ -872,28 +960,21 @@ function AddRecordModal({
                 overrides.time = dayjs(editingEntry.time);
                 overrides.source = editingEntry.source;
                 overrides.volumeMl = editingEntry.volumeMl;
-                overrides.notes = editingEntry.notes;
               }
             } else if (type === "diaper") {
               overrides.time = dayjs(editingEntry.time);
               overrides.diaperType = editingEntry.type;
               overrides.cream = editingEntry.cream;
-              overrides.notes = editingEntry.notes;
             } else if (type === "pump") {
               startTime = dayjs(editingEntry.start);
               endTime = dayjs(editingEntry.finish);
               overrides.side = editingEntry.side;
               overrides.volumeMl = editingEntry.volumeMl;
-              overrides.notes = editingEntry.notes;
             } else if (type === "medicine") {
               overrides.time = dayjs(editingEntry.time);
-              const dose = editingEntry.doses?.[0];
-              if (dose) {
-                overrides.name = dose.name;
-                overrides.amount = dose.amount;
-                overrides.unit = dose.unit;
-              }
-              overrides.notes = editingEntry.notes;
+              overrides.medicines = editingEntry.doses?.length
+                ? editingEntry.doses.map((dose: any) => `${dose.name}${dose.amount ? ` - ${dose.amount} ${dose.unit ?? ""}` : ""}`)
+                : [""];
             } else if (type === "growth") {
               overrides.date = dayjs(editingEntry.date);
               overrides.heightCm = editingEntry.heightCm;
@@ -901,7 +982,14 @@ function AddRecordModal({
               overrides.headCm = editingEntry.headCm;
             } else if (type === "bath") {
               overrides.time = dayjs(editingEntry.time);
-              overrides.notes = editingEntry.notes;
+              if (pairedBathDiaper) {
+                overrides.addDiaperChange = true;
+                overrides.diaperTime = dayjs(pairedBathDiaper.time);
+                overrides.bathDiaperType = pairedBathDiaper.type;
+                overrides.bathDiaperCream = pairedBathDiaper.cream;
+              }
+            } else if (type === "playtime") {
+              overrides.time = dayjs(editingEntry.time);
             } else if (type === "outing") {
               startTime = editingEntry.start || editingEntry.time ? dayjs(editingEntry.start ?? editingEntry.time) : undefined;
               endTime = editingEntry.end ? dayjs(editingEntry.end) : undefined;
@@ -917,6 +1005,26 @@ function AddRecordModal({
               mode = "breast";
               feedingIdValue = openFeeding.id;
               isLiveFeeding = true;
+            } else if (type === "feeding" && defaultFeedingEndTime) {
+              endTime = dayjs(defaultFeedingEndTime);
+              mode = "breast";
+            } else if (type === "diaper" && defaultDiaperTime) {
+              overrides.time = dayjs(defaultDiaperTime);
+            } else if (defaultTime) {
+              const dt = dayjs(defaultTime);
+              if (type === "sleep") {
+                startTime = dt;
+              } else if (type === "feeding") {
+                overrides.time = dt;
+                mode = "bottle";
+              } else if (type === "pump") {
+                overrides.start = dt;
+                overrides.finish = dt.add(15, "minute");
+              } else if (type === "bath" || type === "diaper" || type === "medicine" || type === "playtime") {
+                overrides.time = dt;
+              } else if (type === "outing") {
+                overrides.start = dt;
+              }
             }
           }
 
@@ -935,12 +1043,67 @@ function AddRecordModal({
         }
       }}
     >
-      <Form form={form} layout="vertical" initialValues={initialValues} onFinish={(values) => (type ? onSubmit(type, values) : undefined)}>
+      <Form form={form} layout="vertical" initialValues={getInitialValues()} onFinish={(values) => (type ? onSubmit(type, values) : undefined)}>
         {type === "sleep" ? (
           <>
             <Form.Item name="sleepId" hidden>
               <Input />
             </Form.Item>
+            <div className="diaperQuickRow">
+              <Button
+                size="small"
+                onClick={() => {
+                  const startTime = form.getFieldValue("startTime");
+                  onClose();
+                  window.setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
+                      detail: {
+                        type: "feeding",
+                        defaults: startTime ? { feedingEndTime: startTime.toISOString() } : {},
+                      },
+                    }));
+                  }, 0);
+                }}
+              >
+                Add feeding before
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const startTime = form.getFieldValue("startTime");
+                  const baseAbs = sleepStartAbsolute ?? (startTime ? timeOnToday(startTime) : dayjs());
+                  onClose();
+                  window.setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
+                      detail: {
+                        type: "diaper",
+                        defaults: { diaperTime: baseAbs.subtract(5, "minute").toISOString() },
+                      },
+                    }));
+                  }, 0);
+                }}
+              >
+                Diaper before sleep
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const endTime = form.getFieldValue("endTime");
+                  const baseAbs = sleepEndAbsolute ?? (endTime ? timeOnToday(endTime) : dayjs());
+                  onClose();
+                  window.setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
+                      detail: {
+                        type: "diaper",
+                        defaults: { diaperTime: baseAbs.add(5, "minute").toISOString() },
+                      },
+                    }));
+                  }, 0);
+                }}
+              >
+                Diaper after sleep
+              </Button>
+            </div>
             <div className="sleepActionRow">
               {sleepInProgress ? (
                 <Button
@@ -981,15 +1144,9 @@ function AddRecordModal({
               </Button>
             </div>
             <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-              <NativeTimeInput
-                onChange={(value) => {
-                  if (!value) return;
-                  setSleepRunning(!form.getFieldValue("endTime"));
-                  persistSleepStart(value);
-                }}
-              />
+              <NativeTimeInput />
             </Form.Item>
-            <Form.Item name="endTime" label="End" rules={[{ required: true }]}>
+            <Form.Item name="endTime" label="End">
               <NativeTimeInput />
             </Form.Item>
             <div className={sleepInProgress ? "sleepTimer active" : "sleepTimer"}>
@@ -1013,6 +1170,42 @@ function AddRecordModal({
             <Form.Item name="mode" label={null} style={{ marginBottom: 14 }}>
               <FeedingModePills />
             </Form.Item>
+            <div className="diaperQuickRow">
+              <Button
+                size="small"
+                onClick={() => {
+                  const feedingStart = form.getFieldValue("startTime") ?? form.getFieldValue("time") ?? dayjs();
+                  onClose();
+                  window.setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
+                      detail: {
+                        type: "diaper",
+                        defaults: { diaperTime: dayjs(feedingStart).subtract(5, "minute").toISOString() },
+                      },
+                    }));
+                  }, 0);
+                }}
+              >
+                Add diaper before
+              </Button>
+              <Button
+                size="small"
+                onClick={() => {
+                  const feedingEnd = form.getFieldValue("endTime") ?? form.getFieldValue("time") ?? dayjs();
+                  onClose();
+                  window.setTimeout(() => {
+                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
+                      detail: {
+                        type: "diaper",
+                        defaults: { diaperTime: dayjs(feedingEnd).add(5, "minute").toISOString() },
+                      },
+                    }));
+                  }, 0);
+                }}
+              >
+                Add diaper after
+              </Button>
+            </div>
 
             {feedingNursing ? (
               <>
@@ -1056,15 +1249,9 @@ function AddRecordModal({
                   </Button>
                 </div>
                 <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-                  <NativeTimeInput
-                    onChange={(value) => {
-                      if (!value) return;
-                      setFeedingRunning(!form.getFieldValue("endTime"));
-                      persistFeedingStart(value);
-                    }}
-                  />
+                  <NativeTimeInput />
                 </Form.Item>
-                <Form.Item name="endTime" label="End" rules={[{ required: true }]}>
+                <Form.Item name="endTime" label="End">
                   <NativeTimeInput />
                 </Form.Item>
                 <div className={feedingInProgress ? "sleepTimer active" : "sleepTimer"}>
@@ -1098,45 +1285,20 @@ function AddRecordModal({
         ) : null}
 
         {type === "diaper" ? (
-          <>
-            <div className="diaperQuickRow">
-              <Button
-                size="small"
-                onClick={() => form.setFieldValue("time", dayjs())}
-              >
-                Now
-              </Button>
-              <Button
-                size="small"
-                disabled={!latestBathTime}
-                onClick={() => {
-                  if (!latestBathTime) return;
-                  form.setFieldValue("time", dayjs(latestBathTime).subtract(5, "minute"));
-                }}
-              >
-                Before bath
-              </Button>
-              <Button
-                size="small"
-                disabled={!latestFeedingTime}
-                onClick={() => {
-                  if (!latestFeedingTime) return;
-                  form.setFieldValue("time", dayjs(latestFeedingTime).subtract(5, "minute"));
-                }}
-              >
-                Before feeding
-              </Button>
-            </div>
-            <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
-            <Form.Item name="diaperType" label="Type">
-              <Radio.Group optionType="button" buttonStyle="solid" options={[{ label: "Wet", value: "wet" }, { label: "Dirty", value: "dirty" }, { label: "Mix", value: "mix" }, { label: "Dry", value: "dry" }]} />
-            </Form.Item>
-            <Form.Item name="cream" label="Diaper cream">
-              <Radio.Group optionType="button" options={[{ label: "Assadura", value: "assadura" }, { label: "Hipoglos", value: "hipoglos" }, { label: "None", value: undefined }]} />
-            </Form.Item>
-          </>
+          <DiaperFields
+            showQuickActions
+            latestBathTime={latestBathTime}
+            latestFeedingTime={latestFeedingTime}
+            onNow={() => form.setFieldValue("time", dayjs())}
+            onBeforeBath={() => {
+              if (!latestBathTime) return;
+              form.setFieldValue("time", dayjs(latestBathTime).subtract(5, "minute"));
+            }}
+            onBeforeFeeding={() => {
+              if (!latestFeedingTime) return;
+              form.setFieldValue("time", dayjs(latestFeedingTime).subtract(5, "minute"));
+            }}
+          />
         ) : null}
 
         {type === "pump" ? (
@@ -1159,18 +1321,64 @@ function AddRecordModal({
         {type === "medicine" ? (
           <>
             <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-              <DatePicker showTime style={{ width: "100%" }} />
+              <NativeTimeInput />
             </Form.Item>
-            <Form.Item name="name" label="Medication" rules={[{ required: true }]}>
-              <Input />
-            </Form.Item>
-            <Form.Item name="amount" label="Amount" rules={[{ required: true }]}>
-              <InputNumber addonAfter={<Form.Item name="unit" noStyle><Select style={{ width: 82 }} options={[{ value: "ml", label: "ml" }, { value: "drops", label: "drops" }, { value: "tsp", label: "tsp" }]} /></Form.Item>} min={0} step={0.1} style={{ width: "100%" }} />
-            </Form.Item>
+            <Form.List name="medicines">
+              {(fields, { add, remove }) => (
+                <div className="medicineList">
+                  {fields.map((field, index) => (
+                    <div className="medicineListItem" key={field.key}>
+                      <Form.Item
+                        {...field}
+                        label={index === 0 ? "Medicines" : " "}
+                        rules={[{ required: true, whitespace: true, message: "Enter a medicine" }]}
+                      >
+                        <Input.TextArea autoSize={{ minRows: 1, maxRows: 3 }} placeholder="Medicine name, dose, or note" />
+                      </Form.Item>
+                      {fields.length > 1 ? (
+                        <Button type="text" danger onClick={() => remove(field.name)} aria-label="Remove medicine">
+                          Remove
+                        </Button>
+                      ) : null}
+                    </div>
+                  ))}
+                  <Button type="dashed" onClick={() => add("")} block>
+                    Add another medicine
+                  </Button>
+                </div>
+              )}
+            </Form.List>
           </>
         ) : null}
 
         {type === "bath" ? (
+          <>
+            <Form.Item name="time" label="Time" rules={[{ required: true }]}>
+              <NativeTimeInput />
+            </Form.Item>
+            <Form.Item name="addDiaperChange" valuePropName="checked" className="pairedEntryToggle">
+              <Checkbox
+                onChange={(event) => {
+                  if (event.target.checked) {
+                    form.setFieldsValue({
+                      diaperTime: form.getFieldValue("time") ?? dayjs(),
+                      bathDiaperType: form.getFieldValue("bathDiaperType") ?? "wet",
+                    });
+                  }
+                }}
+              >
+                Add diaper change too
+              </Checkbox>
+            </Form.Item>
+            {addDiaperChange ? (
+              <div className="pairedEntryFields">
+                <DiaperFields timeName="diaperTime" typeName="bathDiaperType" creamName="bathDiaperCream" />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+
+        {type === "playtime" ? (
           <Form.Item name="time" label="Time" rules={[{ required: true }]}>
             <NativeTimeInput />
           </Form.Item>
@@ -1207,14 +1415,12 @@ function AddRecordModal({
           </>
         ) : null}
 
-        {type !== "sleep" && type !== "outing" && !(type === "feeding" && feedingNursing) ? (
-          <Form.Item name="notes" label="Notes">
-            <Input />
-          </Form.Item>
-        ) : null}
         <div className="modalActions">
           <Button className="entrySave modalSave" htmlType="submit">
             {isEditing ? "Update" : "Save"}
+          </Button>
+          <Button className="modalClose" onClick={closePersistingDraft}>
+            Close
           </Button>
           {isEditing ? (
             <Button className="modalDelete" danger onClick={onDelete}>

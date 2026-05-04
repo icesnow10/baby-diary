@@ -2,11 +2,35 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { readData, writeData } from "@/lib/storage";
 import { BabyData, DataKey } from "@/lib/types";
 
+const ENTRY_KEYS: DataKey[] = [
+  "sleep",
+  "feeding",
+  "diaper",
+  "diaperInventory",
+  "pump",
+  "growth",
+  "medicine",
+  "bath",
+  "playtime",
+  "outing",
+];
+
+function visibleData(data: BabyData): BabyData {
+  const result: any = { ...data };
+  for (const key of ENTRY_KEYS) {
+    const list = (data as any)[key];
+    if (Array.isArray(list)) {
+      result[key] = list.filter((entry: any) => !entry?.deleted);
+    }
+  }
+  return result;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     if (req.method === "GET") {
       const data = await readData();
-      return res.status(200).json(data);
+      return res.status(200).json(visibleData(data));
     }
 
     if (req.method === "POST") {
@@ -22,14 +46,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (req.method === "PUT") {
       const { key, id, patch, replace } = req.body as {
-        key: DataKey;
+        key: DataKey | "profile";
         id?: string;
         patch?: any;
         replace?: any[];
       };
       if (!key) return res.status(400).json({ error: "key required" });
       const data = await readData();
-      if (replace) {
+      if (key === "profile") {
+        data.profile = { ...data.profile, ...patch };
+      } else if (replace) {
         (data as any)[key] = replace;
       } else if (id) {
         const list = (data[key] as any[]) ?? [];
@@ -49,9 +75,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!key || !id) return res.status(400).json({ error: "key and id required" });
       const data = await readData();
       const list = (data[key] as any[]) ?? [];
-      (data as any)[key] = list.filter((x) => x.id !== id);
+      const idx = list.findIndex((x) => x.id === id);
+      if (idx === -1) return res.status(404).json({ error: "not found" });
+      list[idx] = { ...list[idx], deleted: true, deletedAt: new Date().toISOString() };
+      (data as any)[key] = list;
       await writeData(data);
-      return res.status(200).json({ ok: true });
+      return res.status(200).json({ ok: true, softDeleted: true });
     }
 
     res.setHeader("Allow", "GET, POST, PUT, DELETE");

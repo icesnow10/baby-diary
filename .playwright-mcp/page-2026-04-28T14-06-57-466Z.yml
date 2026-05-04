@@ -1,0 +1,118 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic:
+      - img
+    - generic [ref=e5]:
+      - banner [ref=e6]:
+        - generic [ref=e7]:
+          - button "Edit baby profile" [ref=e8] [cursor=pointer]
+          - generic [ref=e10]:
+            - strong [ref=e11]: Bebê
+            - img [ref=e12]
+        - button [ref=e16] [cursor=pointer]:
+          - img [ref=e18]
+      - main [ref=e21]:
+        - generic [ref=e22]:
+          - generic [ref=e24]:
+            - generic [ref=e25]:
+              - heading "Today's Summary" [level=5] [ref=e26]
+              - generic [ref=e27]: April 28, 2026
+            - generic [ref=e28]:
+              - generic [ref=e29]:
+                - img [ref=e31]
+                - strong [ref=e33]: 0min
+                - generic [ref=e34]: Sleep
+              - generic [ref=e35]:
+                - img [ref=e37]
+                - strong [ref=e46]: "0"
+                - generic [ref=e47]: Feedings
+              - generic [ref=e48]:
+                - img [ref=e50]
+                - strong [ref=e53]: "0"
+                - generic [ref=e54]: Diapers
+              - generic [ref=e55]:
+                - img [ref=e57]
+                - strong [ref=e60]: "0"
+                - generic [ref=e61]: Pumping
+              - generic [ref=e62]:
+                - img [ref=e64]
+                - strong [ref=e67]: "0"
+                - generic [ref=e68]: Bath
+              - generic [ref=e69]:
+                - img [ref=e71]
+                - strong [ref=e74]: "0"
+                - generic [ref=e75]: Outing
+          - generic [ref=e77]:
+            - heading "Quick Add" [level=5] [ref=e78]
+            - generic [ref=e79]: Tap to add
+            - generic [ref=e80]:
+              - button "Sleep" [ref=e81] [cursor=pointer]:
+                - img [ref=e83]
+                - strong [ref=e85]: Sleep
+              - button "Feeding" [ref=e86] [cursor=pointer]:
+                - img [ref=e88]
+                - strong [ref=e97]: Feeding
+              - button "Diaper" [ref=e98] [cursor=pointer]:
+                - img [ref=e100]
+                - strong [ref=e103]: Diaper
+              - button "Pumping" [ref=e104] [cursor=pointer]:
+                - img [ref=e106]
+                - strong [ref=e109]: Pumping
+              - button "Bath" [ref=e110] [cursor=pointer]:
+                - img [ref=e112]
+                - strong [ref=e115]: Bath
+              - button "Outing" [ref=e116] [cursor=pointer]:
+                - img [ref=e118]
+                - strong [ref=e121]: Outing
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - heading "Today's Timeline" [level=5] [ref=e125]
+              - generic [ref=e126]: April 28, 2026
+            - group "Timeline order" [ref=e127]:
+              - button "Asc" [pressed] [ref=e128] [cursor=pointer]
+              - button "Desc" [ref=e129] [cursor=pointer]
+      - navigation "Mobile navigation" [ref=e133]:
+        - link "Home" [ref=e134] [cursor=pointer]:
+          - /url: /
+          - img [ref=e135]
+          - generic [ref=e138]: Home
+        - link "History" [ref=e139] [cursor=pointer]:
+          - /url: /history
+          - img [ref=e140]
+          - generic [ref=e143]: History
+        - button "Add entry" [ref=e144] [cursor=pointer]:
+          - img [ref=e145]
+        - link "Growth" [ref=e146] [cursor=pointer]:
+          - /url: /growth
+          - img [ref=e147]
+          - generic [ref=e153]: Growth
+        - generic [ref=e154]:
+          - button "More sections" [ref=e155]:
+            - img [ref=e156]
+            - generic [ref=e160]: More
+          - generic "More navigation":
+            - link "Sleep":
+              - /url: /sleep
+              - img
+              - generic: Sleep
+            - link "Feeding":
+              - /url: /feeding
+              - img
+              - generic: Feeding
+            - link "Diapers":
+              - /url: /diaper
+              - img
+              - generic: Diapers
+            - link "Pumping":
+              - /url: /pump
+              - img
+              - generic: Pumping
+            - link "Medicine":
+              - /url: /medicine
+              - img
+              - generic: Medicine
+            - link "Inventory":
+              - /url: /inventory
+              - img
+              - generic: Inventory
+  - alert [ref=e161]

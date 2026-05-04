@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, Input, Space, Table, Typography } from "antd";
+import { Button, DatePicker, Form, Space, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import AppShell from "@/components/AppShell";
@@ -15,7 +15,6 @@ export default function SleepPage() {
     { title: "Start", dataIndex: "start", render: formatDateTime },
     { title: "End", dataIndex: "end", render: formatDateTime },
     { title: "Duration", render: (_, entry) => formatDuration(entry.start, entry.end) },
-    { title: "Notes", dataIndex: "notes" },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("sleep", entry.id)} /> },
   ];
 
@@ -31,7 +30,6 @@ export default function SleepPage() {
               id: newId(),
               start: values.start.toISOString(),
               end: values.end.toISOString(),
-              notes: values.notes,
             });
             form.resetFields();
           }}
@@ -42,9 +40,6 @@ export default function SleepPage() {
             </Form.Item>
             <Form.Item name="end" label="End time" rules={[{ required: true }]}>
               <DatePicker showTime style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="notes" label="Notes">
-              <Input />
             </Form.Item>
           </div>
           <Button type="primary" htmlType="submit">

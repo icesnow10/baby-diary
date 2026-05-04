@@ -1,12 +1,19 @@
-import { useMemo } from "react";
-import Link from "next/link";
-import { Button, Typography } from "antd";
+import { useMemo, useState } from "react";
+import { Typography } from "antd";
 import dayjs from "dayjs";
-import { BarChart3, Baby, Moon, Milk, Package } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Baby, Milk, Moon, Sunrise } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AppShell from "@/components/AppShell";
 import { useData } from "@/context/DataContext";
 import { durationMinutes, formatDuration } from "@/lib/format";
+
+const TREND_SERIES = {
+  sleep: { label: "Sleep", color: "#9d6ee8", unit: "h" },
+  feedings: { label: "Feedings", color: "#ff5f93", unit: "" },
+  diapers: { label: "Diapers", color: "#38bc94", unit: "" },
+} as const;
+
+type TrendKey = keyof typeof TREND_SERIES;
 
 function groupCountByDay(entries: string[]) {
   return entries.reduce<Record<string, number>>((acc, iso) => {
@@ -16,123 +23,194 @@ function groupCountByDay(entries: string[]) {
   }, {});
 }
 
-function maxDay(counts: Record<string, number>) {
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+function median(values: number[]) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+function medianDayCount(counts: Record<string, number>) {
+  const entries = Object.entries(counts);
+  const value = median(entries.map(([, count]) => count));
+  return value === null ? null : { value, days: entries.length };
+}
+
+function formatMedianCount(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
+function recentDays() {
+  const today = dayjs().startOf("day");
+  return Array.from({ length: 7 }, (_, i) => today.subtract(6 - i, "day"));
 }
 
 export default function InsightsPage() {
   const { data } = useData();
+  const [visibleTrends, setVisibleTrends] = useState<Record<TrendKey, boolean>>({
+    sleep: true,
+    feedings: true,
+    diapers: true,
+  });
 
-  const growth = useMemo(() => [...data.growth].sort((a, b) => a.date.localeCompare(b.date)), [data.growth]);
-  const latestGrowth = growth[growth.length - 1];
-  const previousGrowth = growth[growth.length - 2];
+  const medianSleep = useMemo(() => {
+    const sessions = data.sleep
+      .filter((entry) => entry.end)
+      .map((entry) => durationMinutes(entry.start, entry.end!));
+    const value = median(sessions);
+    return value === null ? null : { minutes: Math.round(value), count: sessions.length };
+  }, [data.sleep]);
 
-  const weightData = growth.filter((entry) => entry.weightKg).map((entry) => ({ value: entry.weightKg }));
-  const heightData = growth.filter((entry) => entry.heightCm).map((entry) => ({ value: entry.heightCm }));
-  const headData = growth.filter((entry) => entry.headCm).map((entry) => ({ value: entry.headCm }));
+  const careTrend = useMemo(() => {
+    const feedingCounts = groupCountByDay(data.feeding.map((entry) => entry.time));
+    const diaperCounts = groupCountByDay(data.diaper.map((entry) => entry.time));
 
-  const longestSleep = useMemo(
-    () =>
-      data.sleep
-        .filter((entry) => entry.end)
-        .map((entry) => ({ ...entry, minutes: durationMinutes(entry.start, entry.end!) }))
-        .sort((a, b) => b.minutes - a.minutes)[0],
-    [data.sleep],
-  );
+    return recentDays().map((day) => {
+      const dayStart = day;
+      const dayEnd = day.add(1, "day");
+      const key = day.format("YYYY-MM-DD");
+      const minutes = data.sleep.reduce((total, entry) => {
+        if (!entry.end) return total;
+        const start = dayjs(entry.start);
+        const end = dayjs(entry.end);
+        const overlapStart = start.isAfter(dayStart) ? start : dayStart;
+        const overlapEnd = end.isBefore(dayEnd) ? end : dayEnd;
+        const minutesInDay = overlapEnd.diff(overlapStart, "minute");
+        return total + Math.max(0, minutesInDay);
+      }, 0);
+      return {
+        date: day.format("MMM D"),
+        shortDate: day.format("D"),
+        sleep: Number((minutes / 60).toFixed(1)),
+        feedings: feedingCounts[key] ?? 0,
+        diapers: diaperCounts[key] ?? 0,
+      };
+    });
+  }, [data.diaper, data.feeding, data.sleep]);
 
-  const feedDay = maxDay(groupCountByDay(data.feeding.map((entry) => entry.time)));
-  const diaperDay = maxDay(groupCountByDay(data.diaper.map((entry) => entry.time)));
+  const overnightMedian = useMemo(() => {
+    const sessions = data.sleep
+      .filter((entry) => entry.end)
+      .filter((entry) => {
+        const startHour = dayjs(entry.start).hour();
+        const endHour = dayjs(entry.end!).hour();
+        return startHour >= 18 || startHour < 8 || endHour < 8;
+      })
+      .map((entry) => durationMinutes(entry.start, entry.end!));
+    const value = median(sessions);
+    return value === null ? null : { minutes: Math.round(value), count: sessions.length };
+  }, [data.sleep]);
 
-  const updatedGrowthDate = latestGrowth?.date ? dayjs(latestGrowth.date).format("MMM D") : null;
-  const updatedInventoryDate = data.diaperInventory.length ? dayjs().format("MMM D") : null;
+  const medianFeedings = medianDayCount(groupCountByDay(data.feeding.map((entry) => entry.time)));
+  const medianDiapers = medianDayCount(groupCountByDay(data.diaper.map((entry) => entry.time)));
+  const hasVisibleTrend = Object.values(visibleTrends).some(Boolean);
 
   return (
-    <AppShell title="Insights" subtitle="Growth, inventory, and care patterns">
+    <AppShell title="Insights" subtitle="Care patterns">
       <div className="insightsPage">
-        <div className="insightsTopGrid">
-          <section className="insightPanel growthPanel">
-            <div className="insightHeader">
-              <div>
-                <Typography.Title level={4}>Growth</Typography.Title>
-                {updatedGrowthDate ? <Typography.Text>Last updated: {updatedGrowthDate}</Typography.Text> : null}
-              </div>
-              <span className="insightHeaderIcon growthTone"><BarChart3 size={22} /></span>
-            </div>
-
-            {latestGrowth ? (
-              <div className="growthMetricGrid">
-                {latestGrowth.weightKg ? (
-                  <div className="growthMetric greenTone">
-                    <span>Weight</span>
-                    <strong>{latestGrowth.weightKg} kg</strong>
-                    <Sparkline data={weightData} color="#61bf73" />
-                  </div>
+        <section className="insightPanel sleepTrendPanel">
+          <div className="sleepTrendHeader">
+            <Typography.Title level={4}>Care Trend</Typography.Title>
+            <span>(Last 7 days)</span>
+          </div>
+          <div className="trendChipRow" aria-label="Care trend series">
+            {(Object.keys(TREND_SERIES) as TrendKey[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={visibleTrends[key] ? "trendChip active" : "trendChip"}
+                style={{ "--trend-color": TREND_SERIES[key].color } as React.CSSProperties}
+                aria-pressed={visibleTrends[key]}
+                onClick={() => setVisibleTrends((current) => ({ ...current, [key]: !current[key] }))}
+              >
+                {TREND_SERIES[key].label}
+              </button>
+            ))}
+          </div>
+          <div className="sleepTrendChart">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={careTrend} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <defs>
+                  {(Object.keys(TREND_SERIES) as TrendKey[]).map((key) => (
+                    <linearGradient key={key} id={`${key}TrendFill`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={TREND_SERIES[key].color} stopOpacity={0.24} />
+                      <stop offset="100%" stopColor={TREND_SERIES[key].color} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <XAxis dataKey="shortDate" tickLine={false} axisLine={false} stroke="#9aa0aa" fontSize={12} />
+                <YAxis
+                  allowDecimals={false}
+                  tickLine={false}
+                  axisLine={false}
+                  stroke="#9aa0aa"
+                  fontSize={12}
+                  width={36}
+                  domain={[0, "dataMax + 2"]}
+                />
+                <Tooltip
+                  formatter={(value, name) => {
+                    const key = String(name) as TrendKey;
+                    const meta = TREND_SERIES[key];
+                    return [`${value}${meta.unit}`, meta.label];
+                  }}
+                  labelFormatter={(label) => label}
+                />
+                {hasVisibleTrend ? (
+                  (Object.keys(TREND_SERIES) as TrendKey[]).map((key) =>
+                    visibleTrends[key] ? (
+                      <Area
+                        key={key}
+                        type="monotone"
+                        dataKey={key}
+                        stroke={TREND_SERIES[key].color}
+                        strokeWidth={2.5}
+                        fill={`url(#${key}TrendFill)`}
+                        dot={{ r: 3, stroke: TREND_SERIES[key].color, strokeWidth: 2, fill: "#ffffff" }}
+                        activeDot={{ r: 5 }}
+                      />
+                    ) : null,
+                  )
                 ) : null}
-                {latestGrowth.heightCm ? (
-                  <div className="growthMetric blueTone">
-                    <span>Height</span>
-                    <strong>{latestGrowth.heightCm} cm</strong>
-                    <Sparkline data={heightData} color="#5d9cec" />
-                  </div>
-                ) : null}
-                {latestGrowth.headCm ? (
-                  <div className="growthMetric violetTone">
-                    <span>Head</span>
-                    <strong>{latestGrowth.headCm} cm</strong>
-                    <Sparkline data={headData} color="#a66bea" />
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
-            <Link href="/growth" className="insightAddButton">Add Growth</Link>
-          </section>
-
-          <section className="insightPanel inventoryPanel">
-            <div className="insightHeader">
-              <div>
-                <Typography.Title level={4}>Diaper Inventory</Typography.Title>
-                {updatedInventoryDate ? <Typography.Text>Updated: {updatedInventoryDate}</Typography.Text> : null}
-              </div>
-            </div>
-            <div className="inventoryInsightList">
-              {data.diaperInventory.map((item, index) => (
-                <div className="inventoryInsightRow" key={item.size}>
-                  <span className={`inventoryIcon inventoryTone${index % 4}`}><Package size={17} /></span>
-                  <strong>{item.size}</strong>
-                  <span className={item.count === 0 ? "emptyCount" : ""}>{item.count} pcs</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        {(longestSleep || feedDay || diaperDay) ? (
+        {(medianSleep || medianFeedings || medianDiapers || overnightMedian) ? (
           <section className="insightPanel insightSummaryPanel">
             <Typography.Title level={4}>Insights</Typography.Title>
             <div className="insightCardGrid">
-              {longestSleep ? (
+              {medianSleep ? (
                 <div className="insightMiniCard" style={{ "--metric-bg": "#f8ecff", "--metric-color": "#9d6ee8" } as React.CSSProperties}>
                   <span className="insightMiniIcon"><Moon size={22} /></span>
-                  <small>Longest Sleep</small>
-                  <strong>{formatDuration(longestSleep.minutes)}</strong>
-                  <em>{dayjs(longestSleep.start).format("MMM D")}</em>
+                  <small>Median Sleep</small>
+                  <strong>{formatDuration(medianSleep.minutes)}</strong>
+                  <em>{medianSleep.count} sessions</em>
                 </div>
               ) : null}
-              {feedDay ? (
+              {overnightMedian ? (
+                <div className="insightMiniCard" style={{ "--metric-bg": "#eef0ff", "--metric-color": "#6470d1" } as React.CSSProperties}>
+                  <span className="insightMiniIcon"><Sunrise size={22} /></span>
+                  <small>Median Overnight Sleep</small>
+                  <strong>{formatDuration(overnightMedian.minutes)}</strong>
+                  <em>{overnightMedian.count} sessions - 6pm-8am</em>
+                </div>
+              ) : null}
+              {medianFeedings ? (
                 <div className="insightMiniCard" style={{ "--metric-bg": "#fff0f5", "--metric-color": "#ff5f93" } as React.CSSProperties}>
                   <span className="insightMiniIcon"><Milk size={22} /></span>
-                  <small>Most Feedings</small>
-                  <strong>{feedDay[1]} times</strong>
-                  <em>{dayjs(feedDay[0]).format("MMM D")}</em>
+                  <small>Median Feedings</small>
+                  <strong>{formatMedianCount(medianFeedings.value)} times/day</strong>
+                  <em>{medianFeedings.days} days</em>
                 </div>
               ) : null}
-              {diaperDay ? (
+              {medianDiapers ? (
                 <div className="insightMiniCard" style={{ "--metric-bg": "#eefdf8", "--metric-color": "#38bc94" } as React.CSSProperties}>
                   <span className="insightMiniIcon"><Baby size={22} /></span>
-                  <small>Most Diapers</small>
-                  <strong>{diaperDay[1]} times</strong>
-                  <em>{dayjs(diaperDay[0]).format("MMM D")}</em>
+                  <small>Median Diapers</small>
+                  <strong>{formatMedianCount(medianDiapers.value)} times/day</strong>
+                  <em>{medianDiapers.days} days</em>
                 </div>
               ) : null}
             </div>
@@ -140,19 +218,5 @@ export default function InsightsPage() {
         ) : null}
       </div>
     </AppShell>
-  );
-}
-
-function Sparkline({ data, color }: { data: { value?: number }[]; color: string }) {
-  if (data.length < 2) return null;
-
-  return (
-    <div className="sparklineBox">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.08} strokeWidth={2} dot={{ r: 2 }} />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
   );
 }

@@ -27,6 +27,7 @@ export async function readData(): Promise<BabyData> {
     growth: parsed.growth ?? [],
     medicine: parsed.medicine ?? [],
     bath: parsed.bath ?? [],
+    playtime: parsed.playtime ?? [],
     outing: parsed.outing ?? [],
   };
 }

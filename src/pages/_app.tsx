@@ -1,5 +1,5 @@
 import type { AppProps } from "next/app";
-import { ConfigProvider, theme } from "antd";
+import { App as AntApp, ConfigProvider, theme } from "antd";
 import { DataProvider } from "@/context/DataContext";
 import { ThemeProvider, useThemeMode } from "@/context/ThemeContext";
 import "@/styles/globals.css";
@@ -21,9 +21,11 @@ function AppProviders({ Component, pageProps }: AppProps) {
         },
       }}
     >
-      <DataProvider>
-        <Component {...pageProps} />
-      </DataProvider>
+      <AntApp>
+        <DataProvider>
+          <Component {...pageProps} />
+        </DataProvider>
+      </AntApp>
     </ConfigProvider>
   );
 }
