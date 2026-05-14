@@ -10,6 +10,8 @@ const ENTRY_KEYS: DataKey[] = [
   "pump",
   "growth",
   "medicine",
+  "medicineReminders",
+  "medicineRegistry",
   "bath",
   "playtime",
   "outing",

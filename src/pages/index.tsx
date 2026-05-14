@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/router";
-import { Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, Modal, Radio, Row, Space, Spin, Typography } from "antd";
+import { AutoComplete, Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, Modal, Radio, Row, Space, Spin, Typography } from "antd";
 import dayjs from "dayjs";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BarChart3, Bath, CalendarDays, Gamepad2, Moon, Pill, Trees } from "lucide-react";
@@ -12,7 +12,7 @@ import QuickAddGrid from "@/components/QuickAddGrid";
 import Timeline, { TimelineSortOrder, buildTimelineRows, timelineMetricStyles } from "@/components/Timeline";
 import { useData } from "@/context/DataContext";
 import { formatDuration, newId, todayRange } from "@/lib/format";
-import type { DiaperCream, DiaperEntry, DiaperType } from "@/lib/types";
+import type { DiaperCream, DiaperEntry, DiaperType, MedicineEntry, MedicineReminder } from "@/lib/types";
 
 type RecordType = "sleep" | "feeding" | "diaper" | "pump" | "medicine" | "growth" | "bath" | "playtime" | "outing";
 
@@ -113,15 +113,272 @@ function NativeTimeInput({
   );
 }
 
+function MedicineRegistryManager() {
+  const { data, add, remove } = useData();
+  const registry = data.medicineRegistry ?? [];
+  const [draft, setDraft] = useState("");
+
+  const handleAdd = async () => {
+    const name = draft.trim();
+    if (!name) return;
+    const exists = registry.some((item) => item.name.toLowerCase() === name.toLowerCase());
+    if (exists) {
+      setDraft("");
+      return;
+    }
+    await add("medicineRegistry", { id: newId(), name } as any, { silent: true });
+    setDraft("");
+  };
+
+  return (
+    <section className="reminderManager">
+      <Typography.Title level={5} style={{ margin: "8px 0" }}>
+        My medicines
+      </Typography.Title>
+      <Typography.Text type="secondary" style={{ display: "block", marginBottom: 10, fontSize: 12 }}>
+        Save medicines you give often so you don't have to type them every time.
+      </Typography.Text>
+      <div className="reminderList">
+        {registry.length === 0 ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            No saved medicines yet.
+          </Typography.Text>
+        ) : (
+          registry.map((item) => (
+            <div className="reminderRow" key={item.id}>
+              <div className="reminderInfo">
+                <strong>{item.name}</strong>
+              </div>
+              <Button
+                size="small"
+                type="text"
+                danger
+                onClick={() => remove("medicineRegistry", item.id, { silent: true })}
+              >
+                Delete
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="reminderForm">
+        <Input
+          placeholder="Medicine name"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onPressEnter={handleAdd}
+          style={{ flex: 1 }}
+        />
+        <Button type="primary" onClick={handleAdd} disabled={!draft.trim()}>
+          Save
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function MedicineReminderManager() {
+  const { data, add, update, remove } = useData();
+  const reminders = data.medicineReminders ?? [];
+  const registry = data.medicineRegistry ?? [];
+  const [draftMedicine, setDraftMedicine] = useState<string | undefined>(undefined);
+  const [draftStart, setDraftStart] = useState<dayjs.Dayjs | null>(null);
+  const [draftEnd, setDraftEnd] = useState<dayjs.Dayjs | null>(null);
+
+  const handleAdd = async () => {
+    const name = (draftMedicine ?? "").trim();
+    if (!name || !draftStart || !draftEnd) return;
+    if (!draftEnd.isAfter(draftStart)) return;
+    await add(
+      "medicineReminders",
+      {
+        id: newId(),
+        medicine: name,
+        start: draftStart.toISOString(),
+        end: draftEnd.toISOString(),
+        active: true,
+      } as any,
+      { silent: true },
+    );
+    setDraftMedicine(undefined);
+    setDraftStart(null);
+    setDraftEnd(null);
+  };
+
+  const registryOptions = registry.map((item) => ({ value: item.name, label: item.name }));
+
+  return (
+    <section className="reminderManager">
+      <Typography.Title level={5} style={{ margin: "8px 0" }}>
+        Reminders
+      </Typography.Title>
+      <Typography.Text type="secondary" style={{ display: "block", marginBottom: 10, fontSize: 12 }}>
+        Set a window. If the medicine isn&apos;t logged during that window, a popup keeps reminding you.
+      </Typography.Text>
+      <div className="reminderList">
+        {reminders.length === 0 ? (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            No reminders yet.
+          </Typography.Text>
+        ) : (
+          reminders.map((reminder) => (
+            <div className="reminderRow" key={reminder.id}>
+              <div className="reminderInfo">
+                <strong>{reminder.medicine}</strong>
+                <span>
+                  {dayjs(reminder.start).format("MMM D HH:mm")} → {dayjs(reminder.end).format("MMM D HH:mm")}
+                </span>
+              </div>
+              <Checkbox
+                checked={reminder.active}
+                onChange={(event) =>
+                  update("medicineReminders", reminder.id, { active: event.target.checked }, { silent: true })
+                }
+              >
+                Active
+              </Checkbox>
+              <Button
+                size="small"
+                type="text"
+                danger
+                onClick={() => remove("medicineReminders", reminder.id, { silent: true })}
+              >
+                Delete
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="reminderForm reminderFormColumn">
+        <AutoComplete
+          allowClear
+          placeholder="Pick or type a medicine"
+          value={draftMedicine}
+          onChange={(value) => setDraftMedicine(value)}
+          options={registryOptions}
+          filterOption={(input, option) =>
+            (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+          }
+          style={{ width: "100%" }}
+        />
+        <div className="reminderRange">
+          <DatePicker
+            showTime
+            value={draftStart}
+            onChange={(value) => setDraftStart(value)}
+            placeholder="Start"
+            style={{ flex: 1 }}
+          />
+          <DatePicker
+            showTime
+            value={draftEnd}
+            onChange={(value) => setDraftEnd(value)}
+            placeholder="End"
+            style={{ flex: 1 }}
+          />
+        </div>
+        <Button
+          type="primary"
+          onClick={handleAdd}
+          disabled={!draftMedicine || !draftStart || !draftEnd || !draftEnd.isAfter(draftStart)}
+          block
+        >
+          Add reminder
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function TimeField({
+  name,
+  label,
+  required = false,
+  showNow = true,
+}: {
+  name: string;
+  label?: React.ReactNode;
+  required?: boolean;
+  showNow?: boolean;
+}) {
+  const form = Form.useFormInstance();
+  return (
+    <Form.Item label={label} required={required} style={{ marginBottom: 14 }}>
+      <div className="timeFieldRow">
+        <Form.Item name={name} noStyle rules={required ? [{ required: true }] : undefined}>
+          <NativeTimeInput />
+        </Form.Item>
+        {showNow ? (
+          <Button
+            size="small"
+            type="default"
+            onClick={() => form.setFieldValue(name, dayjs())}
+          >
+            Now
+          </Button>
+        ) : null}
+      </div>
+    </Form.Item>
+  );
+}
+
+const QUICK_DURATIONS_MIN: number[] = [
+  15, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300,
+  330, 360, 390, 420, 450, 480, 510, 540, 570, 600,
+];
+
+function formatQuickDuration(minutes: number) {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`;
+}
+
+function QuickDurationPicker({
+  startTime,
+  endTime,
+  onSelect,
+}: {
+  startTime?: dayjs.Dayjs;
+  endTime?: dayjs.Dayjs;
+  onSelect: (minutes: number) => void;
+}) {
+  const activeMinutes = (() => {
+    if (!startTime || !endTime) return null;
+    const base = dayjs().hour(startTime.hour()).minute(startTime.minute()).second(0).millisecond(0);
+    let end = dayjs().hour(endTime.hour()).minute(endTime.minute()).second(0).millisecond(0);
+    if (end.isBefore(base)) end = end.add(1, "day");
+    const diff = end.diff(base, "minute");
+    return QUICK_DURATIONS_MIN.includes(diff) ? diff : null;
+  })();
+  return (
+    <div className="quickDurationPicker">
+      <div className="quickDurationSlider" role="listbox" aria-label="Quick duration">
+        {QUICK_DURATIONS_MIN.map((minutes) => (
+          <button
+            key={minutes}
+            type="button"
+            className={activeMinutes === minutes ? "quickDurationChip active" : "quickDurationChip"}
+            onClick={() => onSelect(minutes)}
+            aria-pressed={activeMinutes === minutes}
+          >
+            {formatQuickDuration(minutes)}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { data, loading, refresh, add, update, remove } = useData();
   const [activeModal, setActiveModal] = useState<RecordType | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [modalDefaults, setModalDefaults] = useState<{ feedingEndTime?: string; diaperTime?: string; time?: string }>({});
+  const [modalDefaults, setModalDefaults] = useState<{ feedingEndTime?: string; diaperTime?: string; time?: string; medicines?: string[] }>({});
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddDefaultTime, setQuickAddDefaultTime] = useState<string | undefined>(undefined);
   const [timelineSortOrder, setTimelineSortOrder] = useState<TimelineSortOrder>("desc");
+  const [activeReminder, setActiveReminder] = useState<MedicineReminder | null>(null);
   const [start, end] = useMemo(() => todayRange(), []);
   const todayLabel = useMemo(() => dayjs().format("MMMM D, YYYY"), []);
 
@@ -136,31 +393,27 @@ export default function HomePage() {
     return data.diaper.find((entry) => dayjs(entry.time).isSame(dayjs(editingEntry.time), "minute"));
   }, [activeModal, editingEntry, data.diaper]);
 
-  const openModal = (type: RecordType, id: string | null = null, defaults: { feedingEndTime?: string; diaperTime?: string; time?: string } = {}) => {
+  const openModal = (type: RecordType, id: string | null = null, defaults: { feedingEndTime?: string; diaperTime?: string; time?: string; medicines?: string[] } = {}) => {
     if (!id && (type === "sleep" || type === "feeding")) {
       const ongoing = type === "sleep"
         ? data.sleep.find((entry) => !entry.end)
         : data.feeding.find((entry) => entry.kind === "nursing" && !entry.end && !entry.durationMin);
       if (ongoing) {
-        Modal.confirm({
-          title: type === "sleep" ? "Sleep already in progress" : "Feeding already in progress",
-          content: `There is already an ongoing ${type === "sleep" ? "sleep" : "feeding"} activity. What would you like to do?`,
-          okText: "Go to current activity",
-          cancelText: "Overwrite",
-          closable: false,
-          maskClosable: false,
+        const label = type === "sleep" ? "sleep" : "feeding";
+        const title =
+          type === "sleep"
+            ? "Sleep already in progress"
+            : "Feeding already in progress";
+        Modal.info({
+          title,
+          content: `There is already an ongoing ${label} activity. Opening it so you can finish or update it.`,
+          okText: "OK",
           centered: true,
           okButtonProps: { className: "entrySave" },
           onOk: () => {
             setModalDefaults(defaults);
             setActiveModal(type);
             setEditingId(ongoing.id);
-          },
-          onCancel: async () => {
-            await remove(type, ongoing.id, { silent: true });
-            setModalDefaults(defaults);
-            setActiveModal(type);
-            setEditingId(null);
           },
         });
         return;
@@ -195,7 +448,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const handler = (event: Event) => {
-      const detail = (event as CustomEvent<{ type?: RecordType; id?: string | null; defaults?: { feedingEndTime?: string; diaperTime?: string; time?: string } }>).detail;
+      const detail = (event as CustomEvent<{ type?: RecordType; id?: string | null; defaults?: { feedingEndTime?: string; diaperTime?: string; time?: string; medicines?: string[] } }>).detail;
       if (!detail?.type) return;
       openModal(detail.type, detail.id ?? null, detail.defaults ?? {});
     };
@@ -219,6 +472,36 @@ export default function HomePage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, router.query.edit, router.query.quickAdd]);
+
+  const findOverdueReminder = useCallback((): MedicineReminder | null => {
+    const now = dayjs();
+    const reminders = data.medicineReminders ?? [];
+    for (const reminder of reminders) {
+      if (!reminder.active) continue;
+      const rStart = dayjs(reminder.start);
+      const rEnd = dayjs(reminder.end);
+      if (now.isBefore(rStart) || now.isAfter(rEnd)) continue;
+      if (reminder.snoozedUntil && dayjs(reminder.snoozedUntil).isAfter(now)) continue;
+      const targetName = reminder.medicine.trim().toLowerCase();
+      const given = (data.medicine ?? []).some((entry: MedicineEntry) => {
+        if (!dayjs(entry.time).isAfter(rStart.subtract(1, "minute"))) return false;
+        return (entry.doses ?? []).some((dose) => dose.name?.trim().toLowerCase() === targetName);
+      });
+      if (!given) return reminder;
+    }
+    return null;
+  }, [data.medicineReminders, data.medicine]);
+
+  useEffect(() => {
+    const tick = () => {
+      if (activeReminder) return;
+      const overdue = findOverdueReminder();
+      if (overdue) setActiveReminder(overdue);
+    };
+    tick();
+    const id = window.setInterval(tick, 30 * 1000);
+    return () => window.clearInterval(id);
+  }, [findOverdueReminder, activeReminder]);
 
   const latestGrowth = useMemo(() => [...data.growth].sort((a, b) => b.date.localeCompare(a.date))[0], [data.growth]);
 
@@ -322,7 +605,7 @@ export default function HomePage() {
         centered
         footer={null}
         maskClosable={false}
-        keyboard={false}
+        keyboard
         onCancel={() => {
           setQuickAddOpen(false);
           setQuickAddDefaultTime(undefined);
@@ -343,6 +626,56 @@ export default function HomePage() {
           </Button>
         </div>
       </Modal>
+      <Modal
+        open={Boolean(activeReminder)}
+        centered
+        closable={false}
+        maskClosable={false}
+        keyboard={false}
+        title={<strong>Medicine reminder</strong>}
+        footer={null}
+        onCancel={() => setActiveReminder(null)}
+      >
+        {activeReminder ? (
+          <div className="reminderAlert">
+            <Typography.Paragraph style={{ marginBottom: 8 }}>
+              It&apos;s time to give <strong>{activeReminder.medicine}</strong>.
+            </Typography.Paragraph>
+            <Typography.Text type="secondary" style={{ display: "block", marginBottom: 16, fontSize: 12 }}>
+              Window: {dayjs(activeReminder.start).format("MMM D HH:mm")} →{" "}
+              {dayjs(activeReminder.end).format("MMM D HH:mm")}
+            </Typography.Text>
+            <div className="reminderAlertActions">
+              <Button
+                type="primary"
+                className="entrySave"
+                onClick={() => {
+                  const reminder = activeReminder;
+                  setActiveReminder(null);
+                  openModal("medicine", null, { medicines: [reminder.medicine] });
+                }}
+              >
+                Already given — log it
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (activeReminder) {
+                    await update(
+                      "medicineReminders",
+                      activeReminder.id,
+                      { snoozedUntil: dayjs().add(15, "minute").toISOString() },
+                      { silent: true },
+                    );
+                  }
+                  setActiveReminder(null);
+                }}
+              >
+                Snooze 15 min
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
       <AddRecordModal
         type={activeModal}
         editingEntry={editingEntry}
@@ -354,6 +687,7 @@ export default function HomePage() {
         defaultFeedingEndTime={modalDefaults.feedingEndTime}
         defaultDiaperTime={modalDefaults.diaperTime}
         defaultTime={modalDefaults.time}
+        defaultMedicines={modalDefaults.medicines}
         openSleep={data.sleep.find((entry) => !entry.end)}
         openFeeding={data.feeding.find((entry) => entry.kind === "nursing" && !entry.end && !entry.durationMin)}
         onSleepPersist={refresh}
@@ -390,7 +724,7 @@ export default function HomePage() {
                 .minute(values.endTime.minute())
                 .second(0)
                 .millisecond(0);
-              if (sleepEnd.isBefore(sleepStart) || sleepEnd.isSame(sleepStart)) sleepEnd = sleepEnd.add(1, "day");
+              if (sleepEnd.isBefore(sleepStart)) sleepEnd = sleepEnd.add(1, "day");
             }
             if (!baseSource && sleepEnd) {
               const now = dayjs();
@@ -445,7 +779,7 @@ export default function HomePage() {
                   .minute(values.endTime.minute())
                   .second(0)
                   .millisecond(0);
-                if (feedEnd.isBefore(feedStart) || feedEnd.isSame(feedStart)) feedEnd = feedEnd.add(1, "day");
+                if (feedEnd.isBefore(feedStart)) feedEnd = feedEnd.add(1, "day");
               }
               if (!baseSource && feedEnd) {
                 const now = dayjs();
@@ -456,6 +790,14 @@ export default function HomePage() {
               }
               const durationMin = feedEnd ? feedEnd.diff(feedStart, "minute") : undefined;
               const targetId = editId ?? values.feedingId;
+              if (feedEnd && feedEnd.diff(feedStart, "hour", true) > 5) {
+                Modal.error({
+                  title: "Nursing too long",
+                  content: "A nursing session cannot exceed 5 hours. Please check the start and end times.",
+                  okText: "OK",
+                });
+                return;
+              }
               const conflict = feedEnd
                 ? data.feeding.find((f) => {
                     if (f.id === targetId) return false;
@@ -463,6 +805,7 @@ export default function HomePage() {
                     if (!f.end) return false;
                     const fStart = dayjs(f.time);
                     const fEnd = dayjs(f.end);
+                    if (fEnd.diff(fStart, "hour", true) > 5) return false;
                     return feedStart.isBefore(fEnd) && fStart.isBefore(feedEnd);
                   })
                 : undefined;
@@ -477,8 +820,8 @@ export default function HomePage() {
               const payload = {
                 time: feedStart.toISOString(),
                 kind: "nursing" as const,
-                end: feedEnd ? feedEnd.toISOString() : undefined,
-                durationMin: durationMin ?? undefined,
+                end: feedEnd ? feedEnd.toISOString() : null,
+                durationMin: durationMin ?? null,
               };
               if (targetId) {
                 await update("feeding", targetId, payload);
@@ -511,11 +854,9 @@ export default function HomePage() {
           }
           if (type === "pump") {
             const baseSource = editingEntry?.start ?? modalDefaults.time;
-            const [pumpStart, pumpFinish] = timeRangeOnDate(values.startTime, values.endTime, baseSource);
             const payload = {
-              side: values.side,
-              start: pumpStart.toISOString(),
-              finish: pumpFinish.toISOString(),
+              start: timeOnDate(values.time, baseSource).toISOString(),
+              finish: null,
               volumeMl: values.volumeMl,
             };
             if (editId) {
@@ -658,9 +999,7 @@ function DiaperFields({
           </Button>
         </div>
       ) : null}
-      <Form.Item name={timeName} label="Time" rules={[{ required: true }]}>
-        <NativeTimeInput />
-      </Form.Item>
+      <TimeField name={timeName} label="Time" required />
       <Form.Item name={typeName} label="Type">
         <Radio.Group
           optionType="button"
@@ -697,6 +1036,7 @@ function AddRecordModal({
   defaultFeedingEndTime,
   defaultDiaperTime,
   defaultTime,
+  defaultMedicines,
   openSleep,
   openFeeding,
   onSleepPersist,
@@ -715,6 +1055,7 @@ function AddRecordModal({
   defaultFeedingEndTime?: string;
   defaultDiaperTime?: string;
   defaultTime?: string;
+  defaultMedicines?: string[];
   openSleep?: { id: string; start: string };
   openFeeding?: { id: string; time: string };
   onSleepPersist: () => Promise<void>;
@@ -726,6 +1067,9 @@ function AddRecordModal({
   onFeedingCancel: (id: string) => Promise<void>;
 }) {
   const isEditing = Boolean(editingEntry);
+  const { data: dataForRegistry } = useData();
+  const medicineRegistry = dataForRegistry.medicineRegistry ?? [];
+  const medicineOptions = medicineRegistry.map((item) => ({ value: item.name, label: item.name }));
   const [form] = Form.useForm();
   const [clockNow, setClockNow] = useState(dayjs());
   const [sleepRunning, setSleepRunning] = useState(false);
@@ -921,7 +1265,7 @@ function AddRecordModal({
       centered
       footer={null}
       maskClosable={false}
-      keyboard={false}
+      keyboard
       onCancel={closePersistingDraft}
       className={`addRecordModal tone-${current.tone}${type === "sleep" ? " sleepModal" : ""}`}
       title={
@@ -966,9 +1310,7 @@ function AddRecordModal({
               overrides.diaperType = editingEntry.type;
               overrides.cream = editingEntry.cream;
             } else if (type === "pump") {
-              startTime = dayjs(editingEntry.start);
-              endTime = dayjs(editingEntry.finish);
-              overrides.side = editingEntry.side;
+              overrides.time = dayjs(editingEntry.start);
               overrides.volumeMl = editingEntry.volumeMl;
             } else if (type === "medicine") {
               overrides.time = dayjs(editingEntry.time);
@@ -1010,6 +1352,9 @@ function AddRecordModal({
               mode = "breast";
             } else if (type === "diaper" && defaultDiaperTime) {
               overrides.time = dayjs(defaultDiaperTime);
+            } else if (type === "medicine" && defaultMedicines && defaultMedicines.length > 0) {
+              overrides.medicines = defaultMedicines;
+              overrides.time = dayjs();
             } else if (defaultTime) {
               const dt = dayjs(defaultTime);
               if (type === "sleep") {
@@ -1018,8 +1363,7 @@ function AddRecordModal({
                 overrides.time = dt;
                 mode = "bottle";
               } else if (type === "pump") {
-                overrides.start = dt;
-                overrides.finish = dt.add(15, "minute");
+                overrides.time = dt;
               } else if (type === "bath" || type === "diaper" || type === "medicine" || type === "playtime") {
                 overrides.time = dt;
               } else if (type === "outing") {
@@ -1049,61 +1393,6 @@ function AddRecordModal({
             <Form.Item name="sleepId" hidden>
               <Input />
             </Form.Item>
-            <div className="diaperQuickRow">
-              <Button
-                size="small"
-                onClick={() => {
-                  const startTime = form.getFieldValue("startTime");
-                  onClose();
-                  window.setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
-                      detail: {
-                        type: "feeding",
-                        defaults: startTime ? { feedingEndTime: startTime.toISOString() } : {},
-                      },
-                    }));
-                  }, 0);
-                }}
-              >
-                Add feeding before
-              </Button>
-              <Button
-                size="small"
-                onClick={() => {
-                  const startTime = form.getFieldValue("startTime");
-                  const baseAbs = sleepStartAbsolute ?? (startTime ? timeOnToday(startTime) : dayjs());
-                  onClose();
-                  window.setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
-                      detail: {
-                        type: "diaper",
-                        defaults: { diaperTime: baseAbs.subtract(5, "minute").toISOString() },
-                      },
-                    }));
-                  }, 0);
-                }}
-              >
-                Diaper before sleep
-              </Button>
-              <Button
-                size="small"
-                onClick={() => {
-                  const endTime = form.getFieldValue("endTime");
-                  const baseAbs = sleepEndAbsolute ?? (endTime ? timeOnToday(endTime) : dayjs());
-                  onClose();
-                  window.setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
-                      detail: {
-                        type: "diaper",
-                        defaults: { diaperTime: baseAbs.add(5, "minute").toISOString() },
-                      },
-                    }));
-                  }, 0);
-                }}
-              >
-                Diaper after sleep
-              </Button>
-            </div>
             <div className="sleepActionRow">
               {sleepInProgress ? (
                 <Button
@@ -1143,12 +1432,18 @@ function AddRecordModal({
                 Finish
               </Button>
             </div>
-            <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
-            <Form.Item name="endTime" label="End">
-              <NativeTimeInput />
-            </Form.Item>
+            <TimeField name="startTime" label="Start" required />
+            <TimeField name="endTime" label="End" />
+            <QuickDurationPicker
+              startTime={sleepStartTime}
+              endTime={sleepEndTime}
+              onSelect={(minutes) => {
+                const start = sleepStartTime ?? dayjs();
+                if (!sleepStartTime) form.setFieldValue("startTime", start);
+                form.setFieldValue("endTime", start.add(minutes, "minute"));
+                setSleepRunning(false);
+              }}
+            />
             <div className={sleepInProgress ? "sleepTimer active" : "sleepTimer"}>
               <span>
                 {sleepInProgress ? "Sleeping" : "Total sleep"}
@@ -1170,43 +1465,6 @@ function AddRecordModal({
             <Form.Item name="mode" label={null} style={{ marginBottom: 14 }}>
               <FeedingModePills />
             </Form.Item>
-            <div className="diaperQuickRow">
-              <Button
-                size="small"
-                onClick={() => {
-                  const feedingStart = form.getFieldValue("startTime") ?? form.getFieldValue("time") ?? dayjs();
-                  onClose();
-                  window.setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
-                      detail: {
-                        type: "diaper",
-                        defaults: { diaperTime: dayjs(feedingStart).subtract(5, "minute").toISOString() },
-                      },
-                    }));
-                  }, 0);
-                }}
-              >
-                Add diaper before
-              </Button>
-              <Button
-                size="small"
-                onClick={() => {
-                  const feedingEnd = form.getFieldValue("endTime") ?? form.getFieldValue("time") ?? dayjs();
-                  onClose();
-                  window.setTimeout(() => {
-                    document.dispatchEvent(new CustomEvent("baby-diary-open-modal", {
-                      detail: {
-                        type: "diaper",
-                        defaults: { diaperTime: dayjs(feedingEnd).add(5, "minute").toISOString() },
-                      },
-                    }));
-                  }, 0);
-                }}
-              >
-                Add diaper after
-              </Button>
-            </div>
-
             {feedingNursing ? (
               <>
                 <div className="sleepActionRow">
@@ -1248,12 +1506,18 @@ function AddRecordModal({
                     Finish
                   </Button>
                 </div>
-                <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-                  <NativeTimeInput />
-                </Form.Item>
-                <Form.Item name="endTime" label="End">
-                  <NativeTimeInput />
-                </Form.Item>
+                <TimeField name="startTime" label="Start" required />
+                <TimeField name="endTime" label="End" />
+                <QuickDurationPicker
+                  startTime={feedingStartTime}
+                  endTime={feedingEndTime}
+                  onSelect={(minutes) => {
+                    const start = feedingStartTime ?? dayjs();
+                    if (!feedingStartTime) form.setFieldValue("startTime", start);
+                    form.setFieldValue("endTime", start.add(minutes, "minute"));
+                    setFeedingRunning(false);
+                  }}
+                />
                 <div className={feedingInProgress ? "sleepTimer active" : "sleepTimer"}>
                   <span>{feedingInProgress ? "Nursing" : "Total nursing"}</span>
                   <strong>
@@ -1264,9 +1528,7 @@ function AddRecordModal({
               </>
             ) : (
               <>
-                <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-                  <NativeTimeInput />
-                </Form.Item>
+                <TimeField name="time" label="Time" required />
                 <Form.Item name="source" label="Type" rules={[{ required: true }]}>
                   <Radio.Group
                     className="feedingSourceRadio"
@@ -1285,33 +1547,12 @@ function AddRecordModal({
         ) : null}
 
         {type === "diaper" ? (
-          <DiaperFields
-            showQuickActions
-            latestBathTime={latestBathTime}
-            latestFeedingTime={latestFeedingTime}
-            onNow={() => form.setFieldValue("time", dayjs())}
-            onBeforeBath={() => {
-              if (!latestBathTime) return;
-              form.setFieldValue("time", dayjs(latestBathTime).subtract(5, "minute"));
-            }}
-            onBeforeFeeding={() => {
-              if (!latestFeedingTime) return;
-              form.setFieldValue("time", dayjs(latestFeedingTime).subtract(5, "minute"));
-            }}
-          />
+          <DiaperFields />
         ) : null}
 
         {type === "pump" ? (
           <>
-            <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
-            <Form.Item name="endTime" label="End" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
-            <Form.Item name="side" label="Breast">
-              <Radio.Group optionType="button" buttonStyle="solid" options={[{ label: "Left", value: "left" }, { label: "Right", value: "right" }]} />
-            </Form.Item>
+            <TimeField name="time" label="Time" required />
             <Form.Item name="volumeMl" label="Volume">
               <InputNumber addonAfter="ml" min={0} style={{ width: "100%" }} />
             </Form.Item>
@@ -1320,9 +1561,7 @@ function AddRecordModal({
 
         {type === "medicine" ? (
           <>
-            <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
+            <TimeField name="time" label="Time" required />
             <Form.List name="medicines">
               {(fields, { add, remove }) => (
                 <div className="medicineList">
@@ -1333,7 +1572,15 @@ function AddRecordModal({
                         label={index === 0 ? "Medicines" : " "}
                         rules={[{ required: true, whitespace: true, message: "Enter a medicine" }]}
                       >
-                        <Input.TextArea autoSize={{ minRows: 1, maxRows: 3 }} placeholder="Medicine name, dose, or note" />
+                        <AutoComplete
+                          options={medicineOptions}
+                          placeholder="Medicine name, dose, or note"
+                          filterOption={(input, option) =>
+                            (option?.label as string)?.toLowerCase().includes(input.toLowerCase())
+                          }
+                        >
+                          <Input.TextArea autoSize={{ minRows: 1, maxRows: 3 }} />
+                        </AutoComplete>
                       </Form.Item>
                       {fields.length > 1 ? (
                         <Button type="text" danger onClick={() => remove(field.name)} aria-label="Remove medicine">
@@ -1348,14 +1595,14 @@ function AddRecordModal({
                 </div>
               )}
             </Form.List>
+            <MedicineRegistryManager />
+            <MedicineReminderManager />
           </>
         ) : null}
 
         {type === "bath" ? (
           <>
-            <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
+            <TimeField name="time" label="Time" required />
             <Form.Item name="addDiaperChange" valuePropName="checked" className="pairedEntryToggle">
               <Checkbox
                 onChange={(event) => {
@@ -1379,19 +1626,22 @@ function AddRecordModal({
         ) : null}
 
         {type === "playtime" ? (
-          <Form.Item name="time" label="Time" rules={[{ required: true }]}>
-            <NativeTimeInput />
-          </Form.Item>
+          <TimeField name="time" label="Time" required />
         ) : null}
 
         {type === "outing" ? (
           <>
-            <Form.Item name="startTime" label="Start" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
-            <Form.Item name="endTime" label="End" rules={[{ required: true }]}>
-              <NativeTimeInput />
-            </Form.Item>
+            <TimeField name="startTime" label="Start" required />
+            <TimeField name="endTime" label="End" required />
+            <QuickDurationPicker
+              startTime={sleepStartTime}
+              endTime={sleepEndTime}
+              onSelect={(minutes) => {
+                const start = sleepStartTime ?? dayjs();
+                if (!sleepStartTime) form.setFieldValue("startTime", start);
+                form.setFieldValue("endTime", start.add(minutes, "minute"));
+              }}
+            />
             <Form.Item name="place" label="Place">
               <Input />
             </Form.Item>

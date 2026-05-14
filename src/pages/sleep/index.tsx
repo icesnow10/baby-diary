@@ -14,7 +14,7 @@ export default function SleepPage() {
   const columns: ColumnsType<SleepEntry> = [
     { title: "Start", dataIndex: "start", render: formatDateTime },
     { title: "End", dataIndex: "end", render: formatDateTime },
-    { title: "Duration", render: (_, entry) => formatDuration(entry.start, entry.end) },
+    { title: "Duration", render: (_, entry) => formatDuration(entry.start, entry.end ?? undefined) },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("sleep", entry.id)} /> },
   ];
 

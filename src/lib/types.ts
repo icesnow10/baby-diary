@@ -8,7 +8,7 @@ export type MedicineUnit = "ml" | "drops" | "tsp";
 export interface SleepEntry {
   id: string;
   start: string; // ISO
-  end?: string;   // ISO
+  end?: string | null;   // ISO
   notes?: string;
 }
 
@@ -16,11 +16,11 @@ export interface FeedingEntry {
   id: string;
   time: string; // ISO — for nursing this is the start
   kind: FeedingKind;
-  side?: Side;            // when nursing
-  end?: string;           // when nursing — ISO end time
-  durationMin?: number;   // when nursing
-  source?: BottleSource;  // when bottle
-  volumeMl?: number;      // when bottle
+  side?: Side;                      // when nursing
+  end?: string | null;              // when nursing — ISO end time
+  durationMin?: number | null;      // when nursing
+  source?: BottleSource;            // when bottle
+  volumeMl?: number;                // when bottle
   notes?: string;
 }
 
@@ -39,9 +39,9 @@ export interface DiaperInventoryItem {
 
 export interface PumpEntry {
   id: string;
-  side: Side;
+  side?: Side;
   start: string; // ISO
-  finish: string; // ISO
+  finish?: string | null; // ISO
   volumeMl?: number;
   notes?: string;
 }
@@ -94,6 +94,21 @@ export interface BabyProfile {
   avatarUrl?: string;
 }
 
+export interface MedicineReminder {
+  id: string;
+  medicine: string;
+  start: string; // ISO
+  end: string;   // ISO
+  active: boolean;
+  snoozedUntil?: string | null; // ISO
+}
+
+export interface MedicineRegistryItem {
+  id: string;
+  name: string;
+  notes?: string;
+}
+
 export interface BabyData {
   profile: BabyProfile;
   sleep: SleepEntry[];
@@ -103,6 +118,8 @@ export interface BabyData {
   pump: PumpEntry[];
   growth: GrowthEntry[];
   medicine: MedicineEntry[];
+  medicineReminders: MedicineReminder[];
+  medicineRegistry: MedicineRegistryItem[];
   bath: BathEntry[];
   playtime: PlaytimeEntry[];
   outing: OutingEntry[];
@@ -124,6 +141,8 @@ export const EMPTY_DATA: BabyData = {
   pump: [],
   growth: [],
   medicine: [],
+  medicineReminders: [],
+  medicineRegistry: [],
   bath: [],
   playtime: [],
   outing: [],
@@ -137,6 +156,8 @@ export type DataKey =
   | "pump"
   | "growth"
   | "medicine"
+  | "medicineReminders"
+  | "medicineRegistry"
   | "bath"
   | "playtime"
   | "outing";

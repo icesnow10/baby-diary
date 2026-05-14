@@ -27,6 +27,7 @@ export type TimelineRow = {
   icon: React.ReactNode;
   recordType: TimelineRecordType;
   recordId: string;
+  ongoing?: boolean;
 };
 
 type TimelineDisplayRow = TimelineRow & {
@@ -65,6 +66,7 @@ export function buildTimelineRows(data: BabyData): TimelineRow[] {
         icon: <Moon size={18} />,
         recordType: "sleep" as TimelineRecordType,
         recordId: entry.id,
+        ongoing: !entry.end,
       };
     }),
     ...(data.feeding ?? []).map((entry) => {
@@ -92,6 +94,7 @@ export function buildTimelineRows(data: BabyData): TimelineRow[] {
         icon: <BottleIcon size={18} />,
         recordType: "feeding" as TimelineRecordType,
         recordId: entry.id,
+        ongoing: entry.kind === "nursing" && !entry.end && !entry.durationMin,
       };
     }),
     ...(data.diaper ?? []).map((entry) => ({
@@ -108,9 +111,9 @@ export function buildTimelineRows(data: BabyData): TimelineRow[] {
     ...(data.pump ?? []).map((entry) => ({
       id: `pump-${entry.id}`,
       time: entry.start,
-      windowAnchor: entry.finish,
+      windowAnchor: entry.finish ?? entry.start,
       title: "Pumping",
-      detail: `${entry.side} ${formatDuration(entry.start, entry.finish)}${entry.volumeMl ? ` / ${entry.volumeMl} ml` : ""}`,
+      detail: entry.volumeMl ? `${entry.volumeMl} ml` : "Pumping",
       tone: "pump",
       icon: <PumpBottleIcon size={18} />,
       recordType: "pump" as TimelineRecordType,
@@ -163,6 +166,7 @@ export function buildTimelineRows(data: BabyData): TimelineRow[] {
       icon: <Trees size={18} />,
       recordType: "outing" as TimelineRecordType,
       recordId: entry.id,
+      ongoing: entry.start && !entry.end,
     })),
   ];
   return rows;
@@ -322,7 +326,10 @@ export default function Timeline({
                 <div className="todayTimelineIcon">{entry.icon}</div>
               )}
               <div className="todayTimelineCard">
-                <strong>{entry.title}</strong>
+                <strong>
+                  {entry.title}
+                  {entry.ongoing ? <span className="todayTimelineOngoingChip">Ongoing</span> : null}
+                </strong>
                 <span>{entry.detail}</span>
               </div>
               <ChevronRight className="todayTimelineChevron" size={15} />

@@ -33,7 +33,7 @@ export default function DailySummary({ data, start, end, title, label, className
       return inRange(entry.time);
     }).length;
     const diapers = data.diaper.filter((entry) => inRange(entry.time)).length;
-    const pumping = data.pump.filter((entry) => inRange(entry.finish)).length;
+    const pumping = data.pump.filter((entry) => inRange(entry.finish ?? entry.start)).length;
     const medicines = data.medicine.filter((entry) => inRange(entry.time)).length;
     const baths = data.bath.filter((entry) => inRange(entry.time)).length;
     const playtime = data.playtime.filter((entry) => inRange(entry.time)).length;

@@ -1,4 +1,4 @@
-import { Button, DatePicker, Form, InputNumber, Select, Table, Typography } from "antd";
+import { Button, DatePicker, Form, InputNumber, Table, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import AppShell from "@/components/AppShell";
@@ -12,27 +12,24 @@ export default function PumpPage() {
   const [form] = Form.useForm();
   const columns: ColumnsType<PumpEntry> = [
     { title: "Start", dataIndex: "start", render: formatDateTime },
-    { title: "Finish", dataIndex: "finish", render: formatDateTime },
-    { title: "Side", dataIndex: "side" },
-    { title: "Duration", render: (_, entry) => formatDuration(entry.start, entry.finish) },
+    { title: "Finish", dataIndex: "finish", render: (value) => (value ? formatDateTime(value) : "In progress") },
+    { title: "Duration", render: (_, entry) => (entry.finish ? formatDuration(entry.start, entry.finish) : "-") },
     { title: "Volume", render: (_, entry) => (entry.volumeMl ? `${entry.volumeMl} ml` : "-") },
     { title: "", width: 64, render: (_, entry) => <DeleteButton onConfirm={() => remove("pump", entry.id)} /> },
   ];
 
   return (
-    <AppShell title="Pumping" subtitle="Track pumping sessions by left or right breast.">
+    <AppShell title="Pumping" subtitle="Track pumping sessions.">
       <section className="panel">
         <Typography.Title level={4}>New pumping session</Typography.Title>
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ side: "left" }}
           onFinish={async (values) => {
             await add("pump", {
               id: newId(),
-              side: values.side,
               start: values.start.toISOString(),
-              finish: values.finish.toISOString(),
+              finish: values.finish ? values.finish.toISOString() : undefined,
               volumeMl: values.volumeMl,
             });
             form.resetFields();
@@ -42,11 +39,8 @@ export default function PumpPage() {
             <Form.Item name="start" label="Start time" rules={[{ required: true }]}>
               <DatePicker showTime style={{ width: "100%" }} />
             </Form.Item>
-            <Form.Item name="finish" label="Finish time" rules={[{ required: true }]}>
+            <Form.Item name="finish" label="Finish time">
               <DatePicker showTime style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="side" label="Breast">
-              <Select options={[{ value: "left", label: "Left" }, { value: "right", label: "Right" }]} />
             </Form.Item>
             <Form.Item name="volumeMl" label="Volume (ml)">
               <InputNumber min={0} style={{ width: "100%" }} />
